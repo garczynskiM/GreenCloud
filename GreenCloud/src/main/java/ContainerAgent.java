@@ -6,7 +6,9 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import org.graphstream.graph.Graph;
 
+import java.lang.ref.Reference;
 import java.time.Duration;
 import java.util.Calendar;
 import java.util.List;
@@ -22,10 +24,11 @@ public class ContainerAgent extends Agent {
     double MaxEnergyProduction;
     double CurrentEnergyProduction;
     int CPUCores;
+    Reference<Graph> Display;
 
     @Override
     protected void setup() {
         Object[] args = getArguments(); // arguments that are passed on agent creation, similar to UNIX
-        // Should we create WeatherForecastAgent here, or create on program startup and pass AID here?
+
     }
 }

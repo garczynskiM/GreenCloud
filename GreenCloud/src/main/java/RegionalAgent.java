@@ -6,17 +6,14 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import org.graphstream.graph.Graph;
 
-import java.util.Calendar;
+import java.lang.ref.Reference;
 import java.util.List;
 
-public class CloudAgent extends Agent {
+public class RegionalAgent extends Agent{
+    AID[] ContainerAgentAIDs;
+    List<Task> TasksToDistribute;
+    Reference<Graph> Display;
 
-    AID[] RegionalAgentAIDs;
-    List<Task> Tasks;
-
-    @Override
-    protected void setup() {
-
-    }
 }
