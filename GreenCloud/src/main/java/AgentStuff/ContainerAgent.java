@@ -1,3 +1,5 @@
+package AgentStuff;
+
 import ScenarioStructs.ContainerAgentData;
 import jade.core.AID;
 import jade.core.Agent;

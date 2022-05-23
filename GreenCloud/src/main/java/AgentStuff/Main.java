@@ -1,3 +1,5 @@
+package AgentStuff;
+
 import jade.core.Runtime;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
@@ -39,7 +41,7 @@ public class Main {
         try {
             AgentController rma = myContainer.createNewAgent(
                     "rma", "jade.tools.rma.rma", null);
-            myContainer.createNewAgent("Cloud", "CloudAgent", arguments);
+            myContainer.createNewAgent("Scenario", "ScenarioAgent", arguments);
             rma.start();
         } catch(StaleProxyException e) {
             e.printStackTrace();
