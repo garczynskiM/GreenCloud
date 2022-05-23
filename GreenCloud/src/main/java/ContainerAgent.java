@@ -1,3 +1,4 @@
+import ScenarioStructs.ContainerAgentData;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
@@ -15,8 +16,8 @@ import java.util.List;
 
 public class ContainerAgent extends Agent {
 
-    AID ForecastAgentAID;
-    AID RegionalAgentAID;
+    String ForecastAgentName;
+    String RegionalAgentName;
     Duration ConnectionTime;
     double BandwidthInMB;
     double RAMInGB;
@@ -24,11 +25,21 @@ public class ContainerAgent extends Agent {
     double MaxEnergyProduction;
     double CurrentEnergyProduction;
     int CPUCores;
-    Reference<Graph> Display;
+    Graph Display;
 
     @Override
     protected void setup() {
         Object[] args = getArguments(); // arguments that are passed on agent creation, similar to UNIX
-
+        ContainerAgentData initData = (ContainerAgentData)args[0];
+        ForecastAgentName = initData.ForecastAgentName;
+        RegionalAgentName = initData.RegionalAgentName;
+        ConnectionTime = initData.ConnectionTime;
+        BandwidthInMB = initData.BandwidthInMB;
+        RAMInGB = initData.RAMInGB;
+        MaxEnergyUsage = initData.MaxEnergyUsage;
+        MaxEnergyProduction = initData.MaxEnergyProduction;
+        CPUCores = initData.CPUCores;
+        Display = (Graph)args[1];
+        Display.addNode("ContainerAgent " + getName());
     }
 }
