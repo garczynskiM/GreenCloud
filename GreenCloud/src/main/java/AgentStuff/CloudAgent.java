@@ -38,6 +38,7 @@ public class CloudAgent extends Agent {
             }
             RegionalAgentNames.add(data.RegionalAgentName);
         }
+
     }
 
     @Override
