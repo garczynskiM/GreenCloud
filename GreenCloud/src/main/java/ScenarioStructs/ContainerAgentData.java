@@ -18,9 +18,9 @@ public class ContainerAgentData
     public double MaxEnergyProduction;
     public int CPUCores;
 
-    public ContainerAgentData(String forecastAgentName, String regionalAgentName, Duration connectionTime, double bandwidthInMB,
+    public ContainerAgentData(String containerAgentName, String forecastAgentName, String regionalAgentName, Duration connectionTime, double bandwidthInMB,
                               double ramInGB, double maxEnergyUsage, double maxEnergyProduction,
-                              int cpuCores, String containerAgentName)
+                              int cpuCores)
     {
         ContainerAgentName = containerAgentName;
         ForecastAgentName = forecastAgentName;

@@ -23,7 +23,7 @@ public class Main {
         graph.addEdge("BC", "B", "C");
         graph.addEdge("CA", "C", "A");*/
 
-        graph.display();
+        //graph.display();
 
         graph.display();
 
@@ -41,7 +41,7 @@ public class Main {
         try {
             AgentController rma = myContainer.createNewAgent(
                     "rma", "jade.tools.rma.rma", null);
-            myContainer.createNewAgent("Scenario", "ScenarioAgent", arguments);
+            myContainer.createNewAgent("Scenario", "AgentStuff.ScenarioAgent", arguments);
             rma.start();
         } catch(StaleProxyException e) {
             e.printStackTrace();

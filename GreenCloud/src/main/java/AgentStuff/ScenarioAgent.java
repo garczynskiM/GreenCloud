@@ -8,10 +8,12 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import org.graphstream.graph.Graph;
+import org.graphstream.graph.implementations.SingleGraph;
 
 import java.sql.Time;
 
@@ -22,27 +24,43 @@ public class ScenarioAgent extends Agent
     Scenario scenarioToRealise;
     int secondsElapsed = 0;
     String cloudAgentNickname = "CloudAgent";
+
     @Override
     protected void setup()
     {
+        System.out.println("Scenario agent created");
         scenarioToRealise = Scenario.createScenario1();
         timeElapsed = new Time(0);
-        Object[] args = getArguments();
-        graph = (Graph)args[0];
+        /*Object[] args = getArguments();
+        graph = (Graph)args[0];*/
+        System.setProperty("org.graphstream.ui", "swing");
+        graph = new SingleGraph("System");
+        graph.display();
         ContainerController cc = getContainerController();
         Object[] cloudArgs = new Object[2];
         cloudArgs[0] = scenarioToRealise.SystemInfo;
         cloudArgs[1] = graph;
-        AgentController ac = null;
+        AgentContainer c = getContainerController();
+        try {
+            AgentController a = c.createNewAgent(cloudAgentNickname,"AgentStuff.CloudAgent", cloudArgs);
+            a.start();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        /*AgentController ac = null;
         try
         {
-            ac = cc.createNewAgent(cloudAgentNickname, "CloudAgent", cloudArgs);
+            System.out.println("Creating cloud agent");
+            ac = cc.createNewAgent(cloudAgentNickname, "AgentStuff.CloudAgent", cloudArgs);
             ac.start();
         }
         catch (StaleProxyException e)
         {
             e.printStackTrace();
-        }
+        }*/
+
         Behaviour wakerSystemStart = createWakerSystemStart();
         addBehaviour(wakerSystemStart);
     }
@@ -53,7 +71,8 @@ public class ScenarioAgent extends Agent
             @Override
             protected void onWake()
             {
-                Behaviour cyclicMessageSender = createCyclicMessageSender();
+                Behaviour cyclicMessageSender = createTickerMessageSender();
+
                 // Send info to system to start counting time
                 ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
                 msg.addReceiver(new AID(cloudAgentNickname, AID.ISLOCALNAME));
@@ -65,15 +84,16 @@ public class ScenarioAgent extends Agent
             }
         };
     }
-    private Behaviour createCyclicMessageSender()
+    private Behaviour createTickerMessageSender()
     {
-        return new TickerBehaviour(ScenarioAgent.this, 1000)
+        return new TickerBehaviour(this, 1000)
         {
             @Override
             protected void onTick() {
                 secondsElapsed++;
                 timeElapsed.setTime(secondsElapsed * 1000L);
-                for(int i = 0; i < scenarioToRealise.TasksToDistribute.size(); i++)
+                System.out.println(getLocalName() + " - " + timeElapsed);
+                /*for(int i = 0; i < scenarioToRealise.TasksToDistribute.size(); i++)
                 {
                     TaskToDistribute temp = scenarioToRealise.TasksToDistribute.get(i);
                     if(temp.StartTime <= secondsElapsed)
@@ -81,7 +101,7 @@ public class ScenarioAgent extends Agent
                         Task task = temp.Task;
                         // send the task to the cloud
                     }
-                }
+                }*/
             }
         };
     };
