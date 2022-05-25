@@ -33,8 +33,9 @@ public class CloudAgent extends Agent {
     private void initialNodeStyle()
     {
         Node node = Display.getNode(getLocalName());
-        node.setAttribute("ui.style", "fill-color: rgb(0,255,255);size: 30px;" +
-                "text-alignment: under;");
+        /*node.setAttribute("ui.style", "fill-color: rgb(0,255,255);size: 30px;" +
+                "text-alignment: under;");*/
+        node.setAttribute("ui.class", "cloud");
         node.setAttribute("ui.label", getLocalName());
     }
 

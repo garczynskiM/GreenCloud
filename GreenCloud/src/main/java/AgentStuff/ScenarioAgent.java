@@ -24,6 +24,25 @@ public class ScenarioAgent extends Agent
     Scenario scenarioToRealise;
     int secondsElapsed = 0;
     String cloudAgentNickname = "CloudAgent";
+    protected String styleSheet = "node {\n" +
+            "        fill-color: grey;\n" +
+            "        size: 10px;\n" +
+            "        stroke-mode: plain;\n" +
+            "        stroke-color: black;\n" +
+            "        stroke-width: 1px;\n" +
+            "        text-alignment: under;\n" +
+            "    }\n" +
+            "    node.cloud {\n" +
+            "        size: 30px;\n" +
+            "        fill-color: rgb(0,255,255);\n" +
+            "    }\n" +
+            "    node.regional {\n" +
+            "        size: 20px;\n" +
+            "        fill-color: rgb(255,0,0);\n" +
+            "    }\n" +
+            "    node.big {\n" +
+            "        size: 15px;\n" +
+            "    }";
 
     @Override
     protected void setup()
@@ -35,7 +54,7 @@ public class ScenarioAgent extends Agent
         graph = (Graph)args[0];*/
         System.setProperty("org.graphstream.ui", "swing");
         graph = new SingleGraph("System");
-        //graph.setAttribute("ui.stylesheet", "url('CSS/nodeStuff')");
+        graph.setAttribute("ui.stylesheet", styleSheet);
         graph.display();
         ContainerController cc = getContainerController();
         Object[] cloudArgs = new Object[2];
