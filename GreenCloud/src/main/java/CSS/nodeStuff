@@ -1,0 +1,18 @@
+node {
+        fill-color: grey;
+        size: 10px;
+        stroke-mode: plain;
+        stroke-color: black;
+        stroke-width: 1px;
+    }
+    node.cloud {
+        size: 30px;
+        fill-color: blue;
+    }
+    node.regional {
+        size: 20px;
+        fill-color: red;
+    }
+    node.big {
+        size: 15px;
+    }

@@ -15,6 +15,7 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import org.graphstream.graph.Graph;
+import org.graphstream.graph.Node;
 
 import java.sql.Time;
 import java.util.ArrayList;
@@ -22,11 +23,20 @@ import java.util.List;
 
 public class RegionalAgent extends Agent{
     List<String> ContainerAgentNames;
-    String CloudAgentName = "CloudAgent";
+    String CloudAgentLocalName;
+    String CloudAgentName;
     Time timeElapsed = new Time(0);
     int secondsElapsed = 0;
     List<Task> TasksToDistribute;
     Graph Display;
+
+    private void initialNodeStyle()
+    {
+        Node node = Display.getNode(getLocalName());
+        node.setAttribute("ui.style", "fill-color: rgb(255,0,0);size: 20px;" +
+                "text-alignment: under;");
+        node.setAttribute("ui.label", getLocalName());
+    }
 
     @Override
     protected void setup() {
@@ -34,13 +44,18 @@ public class RegionalAgent extends Agent{
         RegionalAgentData initData = (RegionalAgentData)args[0];
         ContainerAgentNames = new ArrayList<>();
         Display = (Graph)args[1];
+        CloudAgentName = (String)args[2];
+        CloudAgentLocalName = (String)args[3];
         Display.addNode(getLocalName());
-        Display.addEdge(CloudAgentName + " " + getLocalName(), CloudAgentName, getLocalName());
+        initialNodeStyle();
+        Display.addEdge(CloudAgentLocalName + " " + getLocalName(), CloudAgentLocalName, getLocalName());
         for (ContainerAgentData data: initData.AgentsToCreate) {
             ContainerController cc = getContainerController();
-            Object[] containerArgs = new Object[2];
+            Object[] containerArgs = new Object[4];
             containerArgs[0] = data;
             containerArgs[1] = Display;
+            containerArgs[2] = getName();
+            containerArgs[3] = getLocalName();
             /*AgentController ac = null;
             try {
                 ac = cc.createNewAgent(data.ContainerAgentName, "AgentStuff.ContainerAgent", containerArgs);

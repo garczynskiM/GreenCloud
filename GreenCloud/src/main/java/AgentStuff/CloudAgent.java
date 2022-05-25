@@ -15,6 +15,7 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import org.graphstream.graph.Graph;
+import org.graphstream.graph.Node;
 
 import java.sql.Time;
 import java.util.ArrayList;
@@ -29,6 +30,14 @@ public class CloudAgent extends Agent {
     List<Task> Tasks;
     Graph Display;
 
+    private void initialNodeStyle()
+    {
+        Node node = Display.getNode(getLocalName());
+        node.setAttribute("ui.style", "fill-color: rgb(0,255,255);size: 30px;" +
+                "text-alignment: under;");
+        node.setAttribute("ui.label", getLocalName());
+    }
+
     @Override
     protected void setup() {
         System.out.println("Cloud agent created");
@@ -38,11 +47,15 @@ public class CloudAgent extends Agent {
         RegionalAgentNames = new ArrayList<>();
         Display = (Graph)args[1];
         Display.addNode(getLocalName());
+        initialNodeStyle();
+
         for (RegionalAgentData data: initData.AgentsToCreate) {
             ContainerController cc = getContainerController();
-            Object[] containerArgs = new Object[2];
+            Object[] containerArgs = new Object[4];
             containerArgs[0] = data;
             containerArgs[1] = Display;
+            containerArgs[2] = getName();
+            containerArgs[3] = getLocalName();
             /*AgentController ac = null;
             try {
                 System.out.println("Creating regional agent");

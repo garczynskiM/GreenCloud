@@ -35,6 +35,7 @@ public class ScenarioAgent extends Agent
         graph = (Graph)args[0];*/
         System.setProperty("org.graphstream.ui", "swing");
         graph = new SingleGraph("System");
+        //graph.setAttribute("ui.stylesheet", "url('CSS/nodeStuff')");
         graph.display();
         ContainerController cc = getContainerController();
         Object[] cloudArgs = new Object[2];
@@ -93,6 +94,8 @@ public class ScenarioAgent extends Agent
                 secondsElapsed++;
                 timeElapsed.setTime(secondsElapsed * 1000L);
                 System.out.println(getLocalName() + " - " + timeElapsed);
+                // Check if we can distribute another task
+
                 /*for(int i = 0; i < scenarioToRealise.TasksToDistribute.size(); i++)
                 {
                     TaskToDistribute temp = scenarioToRealise.TasksToDistribute.get(i);
