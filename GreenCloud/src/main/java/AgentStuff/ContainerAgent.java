@@ -29,6 +29,7 @@ public class ContainerAgent extends Agent {
     double CurrentEnergyProduction;
     int CPUCores;
     Graph Display;
+    WeatherForecast weatherForecast;
 
     private void initialNodeStyle()
     {
@@ -56,6 +57,8 @@ public class ContainerAgent extends Agent {
         initialNodeStyle();
         Display.addEdge(RegionalAgentLocalName + " " + getLocalName(), RegionalAgentLocalName, getLocalName());
         addBehaviour(createCyclicSystemStartupManager());
+
+        weatherForecast = new WeatherForecast(5);
     }
     private Behaviour createCyclicSystemStartupManager()
     {
@@ -89,5 +92,44 @@ public class ContainerAgent extends Agent {
                 System.out.println(getLocalName() + " - " + timeElapsed);
             }
         };
+    }
+
+    //main heuristic method -> returns how possible it is to finish given task
+    private double check_weather_heuristic(Task task) {
+        int task_hours = (int) task.TimeRequired.toHours();
+        if(weatherForecast.forecast_list.size() < task_hours)
+            weatherForecast.expand_forecast(task_hours - weatherForecast.forecast_list.size());
+        //in our heuristic the more the better -> result. Regional agent should choose container with best result
+        double result = 0.0;
+        for(int i=0; i<=task_hours;i++){
+            result += weather_resource_to_energy_ratio(task.RAMRequired,
+                        weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
+                    "RAM");
+            result += weather_resource_to_energy_ratio(task.CPUCoresRequired,
+                    weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
+                    "CPU");
+        }
+        return result;
+    }
+
+    private double weather_resource_to_energy_ratio(double resource_required,
+                                                    double energy_ratio, String resource_type) {
+        double energy_production = energy_ratio * MaxEnergyProduction; //weather energy production
+        //ratio >= 1 -> enough energy to power all resources; else not all resources are available
+        double energy_usage_ratio = energy_production /MaxEnergyUsage;
+        if(energy_usage_ratio>1.0) energy_usage_ratio = 1.0;
+        if(resource_type == "RAM") {
+            //ratio of available resources to resources required
+            //in our heuristic the more the better (cannot be more than 1).
+            //might happen than task is too big for container -> too much resources.
+            // Then the result will raise only slightly
+            double result = energy_usage_ratio * RAMInGB / resource_required;
+            return result <= 1.0 ? result : 1.0;
+        }
+        else if(resource_type == "CPU") {
+            double result = energy_usage_ratio * CPUCores / resource_required;
+            return result <= 1.0 ? result : 1.0;
+        }
+        return -1;
     }
 }
