@@ -112,7 +112,7 @@ public class ScenarioAgent extends Agent
             protected void onTick() {
                 secondsElapsed++;
                 timeElapsed.setTime(secondsElapsed * 1000L);
-                System.out.println(getLocalName() + " - " + timeElapsed);
+                //System.out.println(getLocalName() + " - " + timeElapsed);
                 // Check if we can distribute another task
 
                 /*for(int i = 0; i < scenarioToRealise.TasksToDistribute.size(); i++)
