@@ -221,4 +221,37 @@ public class RegionalAgent extends Agent {
             }
         };
     }
+
+    private Behaviour createTaskCompleterCyclicBehaviour()
+    {
+        return new CyclicBehaviour() {
+            @Override
+            public void action() {
+                var mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+                var message = myAgent.receive(mt);
+                if (message != null) {
+                    System.out.format("[%s] Got message from cloud\n", myAgent.getName());
+                    var content = message.getContent();
+                    var conversationId = UUID.randomUUID().toString();
+                    try {
+                        tasksSent.put(conversationId, Task.stringToTask(content));
+                    } catch (IOException | ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                    var cfp = new ACLMessage(ACLMessage.CFP);
+                    cfp.setConversationId(conversationId);
+                    for (var containerAgent : containerAgentNames) {
+                        cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
+                    }
+                    cfp.setContent(content);
+                    myAgent.send(cfp);
+                    System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
+                    mt = MessageTemplate.MatchConversationId(conversationId);
+                    myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
+                } else {
+                    block();
+                }
+            }
+        };
+    }
 }

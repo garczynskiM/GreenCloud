@@ -25,7 +25,7 @@ public class CloudAgent extends Agent {
     List<String> regionalAgentNames;
     Time timeElapsed;
     int secondsElapsed = 0;
-    Queue<Task> tasks;
+    List<TaskWithStatus> tasks;
     Graph display;
 
     private void initialNodeStyle() {
@@ -75,7 +75,7 @@ public class CloudAgent extends Agent {
             regionalAgentNames.add(data.RegionalAgentName);
         }
         addBehaviour(createCyclicSystemStartupManager());
-        addBehaviour(createTaskGeneratorTicker());
+        //addBehaviour(createTaskGeneratorTicker());
         addBehaviour(createTaskSenderTicker());
     }
 
@@ -96,6 +96,7 @@ public class CloudAgent extends Agent {
                 if(rcv != null) {
                     String message = rcv.getContent();
                     String ontology = rcv.getOntology();
+                    Task completedTask = null;
                     switch (ontology) {
                         case "System startup":
                             // Propagate system startup
@@ -109,6 +110,41 @@ public class CloudAgent extends Agent {
                             }
                             System.out.println("Started waking up");
                             addBehaviour(createTickerTimeMeasurement());
+                        case "New task":
+                            try {
+                                TaskWithStatus newTask = new TaskWithStatus();
+                                newTask.task = Task.stringToTask(message);
+                                newTask.status = TaskStatus.NotSent;
+                                tasks.add(newTask);
+                            } catch (IOException | ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        case "Task completed green":
+                            try {
+                                completedTask = Task.stringToTask(message);
+                            } catch (IOException | ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                            if(completedTask == null) return;
+                            for (TaskWithStatus task : tasks) {
+                                if(Objects.equals(completedTask.id, task.task.id))
+                                {
+                                    task.status = TaskStatus.CompletedWithGreen;
+                                }
+                            }
+                        case "Task completed nonGreen":
+                            try {
+                                completedTask = Task.stringToTask(message);
+                            } catch (IOException | ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                            if(completedTask == null) return;
+                            for (TaskWithStatus task : tasks) {
+                                if(Objects.equals(completedTask.id, task.task.id))
+                                {
+                                    task.status = TaskStatus.CompletedWithoutGreen;
+                                }
+                            }
                     }
                 }
                 block();
@@ -126,14 +162,14 @@ public class CloudAgent extends Agent {
         };
     }
 
-    private Behaviour createTaskGeneratorTicker() {
+    /*private Behaviour createTaskGeneratorTicker() {
         return new TickerBehaviour(this, 3000) {
             @Override
             protected void onTick() {
                 tasks.offer(generateTask());
             }
         };
-    }
+    }*/
 
     private Behaviour createTaskSenderTicker() {
         return new TickerBehaviour(this, 2000) {
@@ -142,23 +178,25 @@ public class CloudAgent extends Agent {
                 if (tasks.isEmpty()) {
                     return;
                 }
-                var random = new Random();
-                var agentIndex = random.nextInt(regionalAgentNames.size());
-                var regionalAgent = regionalAgentNames.get(agentIndex);
-                var regionalAgentAID = new AID(regionalAgent, AID.ISLOCALNAME);
-                var task = tasks.poll();
-                if (task == null) {
-                    return;
+                for (TaskWithStatus task : tasks) {
+                    if (task == null || task.status != TaskStatus.NotSent) {
+                        return;
+                    }
+                    var random = new Random();
+                    var agentIndex = random.nextInt(regionalAgentNames.size());
+                    var regionalAgent = regionalAgentNames.get(agentIndex);
+                    var regionalAgentAID = new AID(regionalAgent, AID.ISLOCALNAME);
+                    ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
+                    message.addReceiver(regionalAgentAID);
+                    try {
+                        message.setContent(Task.taskToString(task.task));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    myAgent.send(message);
+                    System.out.format("[%s] Sent task to [%s]!\n", myAgent.getName(), regionalAgentAID.getName());
+                    task.status = TaskStatus.Sent;
                 }
-                ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
-                message.addReceiver(regionalAgentAID);
-                try {
-                    message.setContent(Task.taskToString(task));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                myAgent.send(message);
-                System.out.format("[%s] Sent task to [%s]!\n", myAgent.getName(), regionalAgentAID.getName());
             }
         };
     }

@@ -15,6 +15,7 @@ import jade.wrapper.StaleProxyException;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.SingleGraph;
 
+import java.io.IOException;
 import java.sql.Time;
 
 public class ScenarioAgent extends Agent
@@ -115,15 +116,29 @@ public class ScenarioAgent extends Agent
                 System.out.println(getLocalName() + " - " + timeElapsed);
                 // Check if we can distribute another task
 
-                /*for(int i = 0; i < scenarioToRealise.TasksToDistribute.size(); i++)
+                for(int i = 0; i < scenarioToRealise.TasksToDistribute.size();)
                 {
                     TaskToDistribute temp = scenarioToRealise.TasksToDistribute.get(i);
                     if(temp.StartTime <= secondsElapsed)
                     {
                         Task task = temp.Task;
-                        // send the task to the cloud
+                        ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
+                        msg.addReceiver(new AID(cloudAgentNickname, AID.ISLOCALNAME));
+                        msg.setLanguage("English");
+                        msg.setOntology("New task");
+                        try {
+                            msg.setContent(Task.taskToString(task));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        send(msg);
+                        scenarioToRealise.TasksToDistribute.remove(i);
                     }
-                }*/
+                    else
+                    {
+                        i++;
+                    }
+                }
             }
         };
     };
