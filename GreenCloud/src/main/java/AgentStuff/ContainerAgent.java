@@ -177,6 +177,16 @@ public class ContainerAgent extends Agent {
                     if (Duration.between(ongoingTask.startTime, LocalDateTime.now()).toMillis() >=
                             ongoingTask.task.timeRequired.toMillis()) {
                         ongoingTask.completed = true;
+                        var completionMessage = new ACLMessage(ACLMessage.INFORM);
+                        //cfp.setConversationId(conversationId);
+                        completionMessage.setOntology("Task completed");
+                        completionMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
+                        try {
+                            completionMessage.setContent(Task.taskToString(ongoingTask.task));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        myAgent.send(completionMessage);
                         System.out.format("[%s] Completed task: [id=%s]!\n", myAgent.getName(), ongoingTask.task.id);
                     }
                     if(!Objects.equals(weatherForecast.forecast_list.get(0), "SUNNY") &&
