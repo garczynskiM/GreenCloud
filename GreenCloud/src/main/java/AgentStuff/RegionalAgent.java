@@ -73,6 +73,7 @@ public class RegionalAgent extends Agent {
         }
         addBehaviour(createCyclicSystemStartupManager());
         addBehaviour(createReceiverFromCloudCyclic());
+        addBehaviour(createReceiverFromContainerFailureCyclic());
     }
     private Behaviour createCyclicSystemStartupManager() {
         return new SimpleBehaviour() {
@@ -115,7 +116,7 @@ public class RegionalAgent extends Agent {
             protected void onTick() {
                 secondsElapsed++;
                 timeElapsed.setTime(secondsElapsed * 1000L);
-                System.out.println(getLocalName() + " - " + timeElapsed);
+                //System.out.println(getLocalName() + " - " + timeElapsed);
             }
         };
     }
@@ -140,6 +141,41 @@ public class RegionalAgent extends Agent {
                     cfp.setConversationId(conversationId);
                     for (var containerAgent : containerAgentNames) {
                         cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
+                    }
+                    cfp.setContent(content);
+                    myAgent.send(cfp);
+                    System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
+                    mt = MessageTemplate.MatchConversationId(conversationId);
+                    myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
+                } else {
+                    block();
+                }
+            }
+        };
+    }
+
+    private Behaviour createReceiverFromContainerFailureCyclic()
+    {
+        return new CyclicBehaviour() {
+            @Override
+            public void action() {
+                var mt = MessageTemplate.MatchPerformative(ACLMessage.FAILURE);
+                var message = myAgent.receive(mt);
+                if (message != null) {
+                    System.out.format("[%s] Got failure message from container [%s]\n", myAgent.getName(),
+                            message.getSender());
+                    var content = message.getContent();
+                    var conversationId = UUID.randomUUID().toString();
+                    try {
+                        tasksSent.put(conversationId, Task.stringToTask(content));
+                    } catch (IOException | ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                    var cfp = new ACLMessage(ACLMessage.CFP);
+                    cfp.setConversationId(conversationId);
+                    for (var containerAgent : containerAgentNames) {
+                        if(containerAgent != message.getSender().toString())
+                            cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
                     }
                     cfp.setContent(content);
                     myAgent.send(cfp);

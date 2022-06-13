@@ -1,6 +1,7 @@
 package AgentStuff;
 
 import ScenarioStructs.ContainerAgentData;
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
@@ -90,7 +91,10 @@ public class ContainerAgent extends Agent {
             protected void onTick() {
                 secondsElapsed++;
                 timeElapsed.setTime(secondsElapsed * 1000L);
-                System.out.println(getLocalName() + " - " + timeElapsed);
+                //System.out.println(getLocalName() + " - " + timeElapsed);
+                weatherForecast.hour_passed_weather_update();
+                if(weatherForecast.forecast_list.size() < 5)
+                    weatherForecast.expand_forecast(5 - weatherForecast.forecast_list.size());
             }
         };
     }
@@ -174,6 +178,23 @@ public class ContainerAgent extends Agent {
                             ongoingTask.task.timeRequired.toMillis()) {
                         ongoingTask.completed = true;
                         System.out.format("[%s] Completed task: [id=%s]!\n", myAgent.getName(), ongoingTask.task.id);
+                    }
+                    if(!Objects.equals(weatherForecast.forecast_list.get(0), "SUNNY") &&
+                            !Objects.equals(weatherForecast.forecast_list.get(0), "CLOUDY"))
+                    {
+                        System.out.format("[%s] - can't complete task [%s] because weather is [%s]\n", myAgent.getName(),
+                                ongoingTask.task.id, weatherForecast.forecast_list.get(0));
+                        var failureMessage = new ACLMessage(ACLMessage.FAILURE);
+                        //cfp.setConversationId(conversationId);
+                        failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
+                        try {
+                            failureMessage.setContent(Task.taskToString(ongoingTask.task));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        myAgent.send(failureMessage);
+                        System.out.format("Sending task back to [%s].\n", regionalAgentName);
+                        ongoingTask.completed = true;
                     }
                 }
                 ongoingTasks.removeIf(task -> task.completed);
