@@ -49,7 +49,9 @@ public class ScenarioAgent extends Agent
     protected void setup()
     {
         System.out.println("Scenario agent created");
-        scenarioToRealise = Scenario.createScenario1();
+        //scenarioToRealise = Scenario.createScenario1();
+        scenarioToRealise = Scenario.conflictingTaskScenario();
+        //scenarioToRealise = Scenario.doubleTaskScenario();
         timeElapsed = new Time(0);
         /*Object[] args = getArguments();
         graph = (Graph)args[0];*/
@@ -101,6 +103,7 @@ public class ScenarioAgent extends Agent
                 msg.setOntology("System startup");
                 msg.setContent("System starts, start counting time.");
                 send(msg);
+                scenarioToRealise.updateTaskDeadline();
                 myAgent.addBehaviour(cyclicMessageSender);
             }
         };

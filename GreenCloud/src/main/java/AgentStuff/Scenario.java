@@ -1,11 +1,14 @@
 package AgentStuff;
 
+import FIPA.DateTime;
 import ScenarioStructs.CloudAgentData;
 import ScenarioStructs.ContainerAgentData;
 import ScenarioStructs.RegionalAgentData;
 import ScenarioStructs.TaskToDistribute;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,13 +16,15 @@ public class Scenario
 {
     public CloudAgentData SystemInfo;
     public List<TaskToDistribute> TasksToDistribute;
+    public LocalDateTime ScenarioStart;
 
-    public Scenario(CloudAgentData systemInfo, List<TaskToDistribute> tasksToDistribute)
+    public Scenario(CloudAgentData systemInfo, List<TaskToDistribute> tasksToDistribute, LocalDateTime scenarioStart)
     {
         SystemInfo = systemInfo;
         TasksToDistribute = tasksToDistribute;
+        ScenarioStart = scenarioStart;
     }
-    static public Scenario createScenario1()
+    static public Scenario randomScenario()
     {
         RegionalAgentData europeRegData = new RegionalAgentData(new ArrayList<>(), "EuropeManager");
         for(int i = 0; i < 2; i++)
@@ -40,6 +45,75 @@ public class Scenario
         cloudInfo.add(americaRegData);
         CloudAgentData systemInfo = new CloudAgentData(cloudInfo);
         List<TaskToDistribute> tasksToDistribute = new ArrayList<>();
-        return new Scenario(systemInfo, tasksToDistribute);
+        return new Scenario(systemInfo, tasksToDistribute, LocalDateTime.now());
+    }
+    static public Scenario conflictingTaskScenario() // one task should be done by regionalAgent
+    // because the deadlines won't fit
+    {
+        int numberOfTasks = 4;
+        RegionalAgentData europeRegData = new RegionalAgentData(new ArrayList<>(), "EuropeManager");
+        europeRegData.AgentsToCreate.add(new ContainerAgentData("Europe1",
+                "null", "EuropeManager", Duration.ofMillis(250), 1000,
+                64, 100,200, 32));
+        List<RegionalAgentData> cloudInfo = new ArrayList<>();
+        cloudInfo.add(europeRegData);
+        CloudAgentData systemInfo = new CloudAgentData(cloudInfo);
+        List<TaskToDistribute> tasksToDistribute = new ArrayList<>();
+        LocalDateTime startOfCreation = LocalDateTime.now();
+        for(int i = 0; i < numberOfTasks; i++)
+        {
+            tasksToDistribute.add(new TaskToDistribute(new Task("Task" + Integer.toString(i + 1),
+                    Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(6*(i + 1))),
+                    i*6));
+        }
+        tasksToDistribute.add(new TaskToDistribute(new Task("TaskToDoByRegional",
+                Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(6*numberOfTasks)),
+                (numberOfTasks - 1)*6));
+
+        return new Scenario(systemInfo, tasksToDistribute, startOfCreation);
+    }
+    static public Scenario doubleTaskScenario() // All tasks should be done by the container, because he can do multiple
+            // tasks at once
+    {
+        int numberOfTasks = 4;
+        RegionalAgentData europeRegData = new RegionalAgentData(new ArrayList<>(), "EuropeManager");
+        europeRegData.AgentsToCreate.add(new ContainerAgentData("Europe1",
+                "null", "EuropeManager", Duration.ofMillis(250), 1000,
+                256, 100,200, 128));
+        List<RegionalAgentData> cloudInfo = new ArrayList<>();
+        cloudInfo.add(europeRegData);
+        CloudAgentData systemInfo = new CloudAgentData(cloudInfo);
+        List<TaskToDistribute> tasksToDistribute = new ArrayList<>();
+        LocalDateTime startOfCreation = LocalDateTime.now();
+        for(int i = 0; i < numberOfTasks; i++)
+        {
+            tasksToDistribute.add(new TaskToDistribute(new Task("Task" + Integer.toString(i + 1),
+                    Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(6*(i + 1))),
+                    i*6));
+        }
+        tasksToDistribute.add(new TaskToDistribute(new Task("TaskToDoByRegional",
+                Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(6*numberOfTasks)),
+                (numberOfTasks - 1)*6));
+
+        return new Scenario(systemInfo, tasksToDistribute, startOfCreation);
+    }
+    public void updateTaskDeadline()
+    {
+        LocalDateTime rightNow = LocalDateTime.now();
+        for (TaskToDistribute taskToDistribute : this.TasksToDistribute) {
+            LocalDateTime tempTaskDeadline = taskToDistribute.Task.deadline;
+            LocalDateTime ScenarioStartCopy = this.ScenarioStart;
+
+            long hours = ScenarioStartCopy.until(tempTaskDeadline, ChronoUnit.HOURS);
+            ScenarioStartCopy = ScenarioStartCopy.plusHours(hours);
+            long minutes = ScenarioStartCopy.until(tempTaskDeadline, ChronoUnit.MINUTES);
+            ScenarioStartCopy = ScenarioStartCopy.plusMinutes(minutes);
+            long seconds = ScenarioStartCopy.until(tempTaskDeadline, ChronoUnit.SECONDS);
+
+            taskToDistribute.Task.deadline = rightNow;
+            taskToDistribute.Task.deadline = taskToDistribute.Task.deadline.plusSeconds(seconds);
+            taskToDistribute.Task.deadline = taskToDistribute.Task.deadline.plusMinutes(minutes);
+            taskToDistribute.Task.deadline = taskToDistribute.Task.deadline.plusHours(hours);
+        }
     }
 }
