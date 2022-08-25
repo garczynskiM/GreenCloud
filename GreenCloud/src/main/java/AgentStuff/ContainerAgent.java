@@ -183,6 +183,7 @@ public class ContainerAgent extends Agent {
                 }
                 double currentlyAvailableRAM = currentEnergyProduction/maxEnergyUsage * ramInGB;
                 int currentlyAvailableCPU = (int) (currentEnergyProduction/maxEnergyUsage * cpuCores);
+                ongoingTasks.sort(new SortByRemainingDuration());
                 for (OngoingTask ongoingTask : ongoingTasks) {
                     if (Duration.between(ongoingTask.startTime, LocalDateTime.now()).toMillis() >=
                             ongoingTask.task.timeRequired.toMillis()) {
@@ -265,5 +266,19 @@ public class ContainerAgent extends Agent {
             return Math.min(result, 1.0);
         }
         return -1;
+    }
+
+    static class SortByRemainingDuration implements Comparator<OngoingTask>
+    {
+        // Used for sorting in ascending order of
+        // roll number
+        public int compare(OngoingTask a, OngoingTask b)
+        {
+            var remainingDuration_a = a.task.timeRequired.toMillis() -
+                    Duration.between(a.startTime, LocalDateTime.now()).toMillis();
+            var remainingDuration_b = b.task.timeRequired.toMillis() -
+                    Duration.between(b.startTime, LocalDateTime.now()).toMillis();
+            return (int) (remainingDuration_a - remainingDuration_b);
+        }
     }
 }
