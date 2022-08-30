@@ -25,10 +25,12 @@ public class ContainerAgent extends Agent {
     Duration connectionTime;
     double bandwidthInMB;
     double ramInGB;
+    double currentlyUsedRam;
     double maxEnergyUsage;
     double maxEnergyProduction;
     double currentEnergyProduction;
     int cpuCores;
+    int currentlyUsedCPU;
     Graph display;
     Map<String, Task> tasksToAcceptByRegional;
     List<OngoingTask> ongoingTasks;
@@ -53,9 +55,11 @@ public class ContainerAgent extends Agent {
         connectionTime = initData.ConnectionTime;
         bandwidthInMB = initData.BandwidthInMB;
         ramInGB = initData.RAMInGB;
+        currentlyUsedRam = 0;
         maxEnergyUsage = initData.MaxEnergyUsage;
         maxEnergyProduction = initData.MaxEnergyProduction;
         cpuCores = initData.CPUCores;
+        currentlyUsedCPU = 0;
         display = (Graph)args[1];
         display.addNode(getLocalName());
         initialNodeStyle();
@@ -95,6 +99,8 @@ public class ContainerAgent extends Agent {
                 weatherForecast.hour_passed_weather_update();
                 if(weatherForecast.forecast_list.size() < 5)
                     weatherForecast.expand_forecast(5 - weatherForecast.forecast_list.size());
+                currentEnergyProduction = Math.min(weatherForecast.current_weather_factor * maxEnergyProduction,
+                        maxEnergyUsage);
             }
         };
     }
@@ -150,6 +156,8 @@ public class ContainerAgent extends Agent {
                     var task = tasksToAcceptByRegional.remove(conversationId);
                     if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                         ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
+                        currentlyUsedCPU += task.cpuCoresRequired;
+                        currentlyUsedRam += task.ramRequired;
                         System.out.format("[%s] Starting doing task: [id=%s]!\n", myAgent.getName(), task.id);
                     }
                     finished = true;
@@ -173,6 +181,9 @@ public class ContainerAgent extends Agent {
                 if (ongoingTasks.isEmpty()) {
                     return;
                 }
+                double currentlyAvailableRAM = currentEnergyProduction/maxEnergyUsage * ramInGB;
+                int currentlyAvailableCPU = (int) (currentEnergyProduction/maxEnergyUsage * cpuCores);
+                ongoingTasks.sort(new SortByRemainingDuration());
                 for (OngoingTask ongoingTask : ongoingTasks) {
                     if (Duration.between(ongoingTask.startTime, LocalDateTime.now()).toMillis() >=
                             ongoingTask.task.timeRequired.toMillis()) {
@@ -188,23 +199,29 @@ public class ContainerAgent extends Agent {
                         }
                         myAgent.send(completionMessage);
                         System.out.format("[%s] Completed task: [id=%s]!\n", myAgent.getName(), ongoingTask.task.id);
+                        currentlyUsedRam -= ongoingTask.task.ramRequired;
+                        currentlyUsedCPU -= ongoingTask.task.cpuCoresRequired;
                     }
-                    if(!Objects.equals(weatherForecast.forecast_list.get(0), "SUNNY") &&
-                            !Objects.equals(weatherForecast.forecast_list.get(0), "CLOUDY"))
+                    else
                     {
-                        System.out.format("[%s] - can't complete task [%s] because weather is [%s]\n", myAgent.getName(),
-                                ongoingTask.task.id, weatherForecast.forecast_list.get(0));
-                        var failureMessage = new ACLMessage(ACLMessage.FAILURE);
-                        //cfp.setConversationId(conversationId);
-                        failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
-                        try {
-                            failureMessage.setContent(Task.taskToString(ongoingTask.task));
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if(currentlyAvailableCPU < currentlyUsedCPU || currentlyAvailableRAM < currentlyUsedRam)
+                        {
+                            System.out.format("[%s] - can't complete task [%s] because weather is [%s]\n", myAgent.getName(),
+                                    ongoingTask.task.id, weatherForecast.forecast_list.get(0));
+                            var failureMessage = new ACLMessage(ACLMessage.FAILURE);
+                            //cfp.setConversationId(conversationId);
+                            failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
+                            try {
+                                failureMessage.setContent(Task.taskToString(ongoingTask.task));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            myAgent.send(failureMessage);
+                            System.out.format("Sending task back to [%s].\n", regionalAgentName);
+                            ongoingTask.completed = true;
+                            currentlyUsedRam -= ongoingTask.task.ramRequired;
+                            currentlyUsedCPU -= ongoingTask.task.cpuCoresRequired;
                         }
-                        myAgent.send(failureMessage);
-                        System.out.format("Sending task back to [%s].\n", regionalAgentName);
-                        ongoingTask.completed = true;
                     }
                 }
                 ongoingTasks.removeIf(task -> task.completed);
@@ -249,5 +266,19 @@ public class ContainerAgent extends Agent {
             return Math.min(result, 1.0);
         }
         return -1;
+    }
+
+    static class SortByRemainingDuration implements Comparator<OngoingTask>
+    {
+        // Used for sorting in ascending order of
+        // roll number
+        public int compare(OngoingTask a, OngoingTask b)
+        {
+            var remainingDuration_a = a.task.timeRequired.toMillis() -
+                    Duration.between(a.startTime, LocalDateTime.now()).toMillis();
+            var remainingDuration_b = b.task.timeRequired.toMillis() -
+                    Duration.between(b.startTime, LocalDateTime.now()).toMillis();
+            return (int) (remainingDuration_a - remainingDuration_b);
+        }
     }
 }
