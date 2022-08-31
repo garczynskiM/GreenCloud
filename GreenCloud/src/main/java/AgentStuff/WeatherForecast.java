@@ -15,24 +15,36 @@ public class WeatherForecast {
     public double current_weather_factor;
     public LinkedList<String> forecast_list = new LinkedList<String>(); //weather forecast list
 
+    private Random random = new Random();
+
     //time duration is parameter of forecast time, ie. 5 -> forecast for next 5 hours
+    public WeatherForecast(int forecast_duration, String start_weather, int seed) {
+        random = new Random(seed);
+        forecast_init(forecast_duration, start_weather);
+    }
     public WeatherForecast(int forecast_duration, String start_weather) {
+        forecast_init(forecast_duration, start_weather);
+    }
+    public WeatherForecast(int forecast_duration, int seed) {
+        this(forecast_duration, "SUNNY", seed);
+    }
+    public WeatherForecast(int forecast_duration) {
+        this(forecast_duration, "SUNNY");
+    }
+
+    private void forecast_init(int forecast_duration, String start_weather) {
         create_forecast(forecast_duration, weather_status.get(start_weather));
         current_weather = forecast_duration > 0 ? forecast_list.get(0) : "ERROR";
         current_weather_factor = weather_status.get(current_weather);
     }
 
-    public WeatherForecast(int forecast_duration) {
-        create_forecast(forecast_duration, 1.0);
-        current_weather = forecast_duration > 0 ? forecast_list.get(0) : "ERROR";
-        current_weather_factor = weather_status.get(current_weather);
+    private void create_forecast(int forecast_duration, double start_weather){
+        create_forecast(forecast_duration, start_weather, 100);
     }
-
-    private void create_forecast(int forecast_duration, double start_weather) {
-        Random random_gaussian = new Random();
+    private void create_forecast(int forecast_duration, double start_weather, int seed) {
         double last_random = start_weather;
         for(int i=0; i<forecast_duration; i++) {
-            double next_random = random_gaussian.nextGaussian()*1.5+last_random;
+            double next_random = random.nextGaussian()*1.5+last_random;
             if(next_random <0.0) {
                 forecast_list.add("NIGHT");
             }
@@ -62,7 +74,6 @@ public class WeatherForecast {
         forecast_list.getFirst();
         double change_chance = 0.5;
         double change_change_factor = 0.5;
-        Random random = new Random();
         for(int i=0; i< forecast_list.size(); i++) {
             //check if we change weather in given hour
             if(random.nextDouble() <= change_chance) {
