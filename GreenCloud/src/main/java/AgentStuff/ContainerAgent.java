@@ -82,6 +82,7 @@ public class ContainerAgent extends Agent {
                     switch (ontology) {
                         case "System startup":
                             addBehaviour(createTickerTimeMeasurement());
+                            break;
                     }
                 }
                 block();
@@ -155,10 +156,23 @@ public class ContainerAgent extends Agent {
                     var conversationId = msg.getConversationId();
                     var task = tasksToAcceptByRegional.remove(conversationId);
                     if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                        ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
-                        currentlyUsedCPU += task.cpuCoresRequired;
-                        currentlyUsedRam += task.ramRequired;
-                        System.out.format("[%s] Starting doing task: [id=%s]!\n", myAgent.getName(), task.id);
+                        if (currentlyUsedCPU + task.cpuCoresRequired > cpuCores || currentlyUsedRam + task.ramRequired > ramInGB) {
+                            var failureMessage = new ACLMessage(ACLMessage.FAILURE);
+                            try {
+                                failureMessage.setContent(Task.taskToString(task));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
+                            myAgent.send(failureMessage);
+                            System.out.format("Sending task [id=%s] back to [%s] due to insufficient resources to start execution.\n",
+                                    regionalAgentName, task.id);
+                        } else {
+                            ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
+                            currentlyUsedCPU += task.cpuCoresRequired;
+                            currentlyUsedRam += task.ramRequired;
+                            System.out.format("[%s] Starting doing task: [id=%s]!\n", myAgent.getName(), task.id);
+                        }
                     }
                     finished = true;
                 }
