@@ -15,6 +15,8 @@ import org.graphstream.graph.Node;
 
 import java.io.IOException;
 import java.sql.Time;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class RegionalAgent extends Agent {
@@ -24,6 +26,7 @@ public class RegionalAgent extends Agent {
     Time timeElapsed = new Time(0);
     int secondsElapsed = 0;
     List<Task> tasksToDistribute;
+    List<OngoingTask> ongoingTasks;
     Graph display;
     Map<String, Task> tasksSent;
 
@@ -39,6 +42,7 @@ public class RegionalAgent extends Agent {
         Object[] args = getArguments(); // arguments that are passed on agent creation, similar to UNIX
         RegionalAgentData initData = (RegionalAgentData)args[0];
         containerAgentNames = new ArrayList<>();
+        ongoingTasks = new ArrayList<>();
         tasksSent = new HashMap<>();
         display = (Graph)args[1];
         cloudAgentName = (String)args[2];
@@ -74,6 +78,7 @@ public class RegionalAgent extends Agent {
         addBehaviour(createCyclicSystemStartupManager());
         addBehaviour(createReceiverFromCloudCyclic());
         addBehaviour(createReceiverFromContainerFailureCyclic());
+        addBehaviour(createTaskCompleteCheckerTicker());
     }
     private Behaviour createCyclicSystemStartupManager() {
         return new SimpleBehaviour() {
@@ -99,6 +104,7 @@ public class RegionalAgent extends Agent {
                             }
                             addBehaviour(createTickerTimeMeasurement());
                             finished = true;
+                            break;
                         case "Task completed":
                             var content = rcv.getContent();
                             var newMessage = new ACLMessage(ACLMessage.INFORM);
@@ -106,6 +112,7 @@ public class RegionalAgent extends Agent {
                             newMessage.setContent(content);
                             newMessage.addReceiver(new AID(cloudAgentName, AID.ISLOCALNAME));
                             myAgent.send(newMessage);
+                            break;
                     }
                 } else
                 {
@@ -174,23 +181,37 @@ public class RegionalAgent extends Agent {
                     System.out.format("[%s] Got failure message from container [%s]\n", myAgent.getName(),
                             message.getSender());
                     var content = message.getContent();
-                    var conversationId = UUID.randomUUID().toString();
+                    Task task = null;
                     try {
-                        tasksSent.put(conversationId, Task.stringToTask(content));
+                        task = Task.stringToTask(content);
                     } catch (IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }
-                    var cfp = new ACLMessage(ACLMessage.CFP);
-                    cfp.setConversationId(conversationId);
-                    for (var containerAgent : containerAgentNames) {
-                        if(containerAgent != message.getSender().toString())
-                            cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
+                    if (task != null) {
+                        String keyToRemove = null;
+                        for (Map.Entry<String, Task> entry : tasksSent.entrySet()) {
+                            if (Objects.equals(entry.getValue().id, task.id)) {
+                                keyToRemove = entry.getKey();
+                                break;
+                            }
+                        }
+                        if (keyToRemove != null) {
+                            tasksSent.remove(keyToRemove);
+                        }
+                        var conversationId = UUID.randomUUID().toString();
+                        tasksSent.put(conversationId, task);
+                        var cfp = new ACLMessage(ACLMessage.CFP);
+                        cfp.setConversationId(conversationId);
+                        for (var containerAgent : containerAgentNames) {
+                            if (!Objects.equals(containerAgent, message.getSender().toString()))
+                                cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
+                        }
+                        cfp.setContent(content);
+                        myAgent.send(cfp);
+                        System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
+                        mt = MessageTemplate.MatchConversationId(conversationId);
+                        myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
                     }
-                    cfp.setContent(content);
-                    myAgent.send(cfp);
-                    System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
-                    mt = MessageTemplate.MatchConversationId(conversationId);
-                    myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
                 } else {
                     block();
                 }
@@ -222,8 +243,13 @@ public class RegionalAgent extends Agent {
                         // got replies from every container
                         if (!proposals.isEmpty()) {
                             myAgent.addBehaviour(createProposalChooserOneShot(proposals, conversationId));
-                            finished = true;
+                        } else {
+                            // there are no containers that can do this task, regional agent does it itself
+                            var task = tasksSent.remove(conversationId);
+                            ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
+                            System.out.format("[%s] Starting doing task by regional agent: [task id=%s]!\n", myAgent.getName(), task.id);
                         }
+                        finished = true;
                     }
                 }
                 else {
@@ -263,6 +289,35 @@ public class RegionalAgent extends Agent {
                     }
                 }
                 myAgent.send(rejectMessage);
+            }
+        };
+    }
+
+    private Behaviour createTaskCompleteCheckerTicker() {
+        return new TickerBehaviour(this, 500) {
+            @Override
+            protected void onTick() {
+                if (ongoingTasks.isEmpty()) {
+                    return;
+                }
+                ongoingTasks.sort(new ContainerAgent.SortByRemainingDuration());
+                for (OngoingTask ongoingTask : ongoingTasks) {
+                    if (Duration.between(ongoingTask.startTime, LocalDateTime.now()).toMillis() >=
+                            ongoingTask.task.timeRequired.toMillis()) {
+                        ongoingTask.completed = true;
+                        System.out.format("[%s] Completed task by regional agent: [task id=%s]!\n", myAgent.getName(), ongoingTask.task.id);
+                        var newMessage = new ACLMessage(ACLMessage.INFORM);
+                        newMessage.setOntology("Task completed nonGreen");
+                        try {
+                            newMessage.setContent(Task.taskToString(ongoingTask.task));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        newMessage.addReceiver(new AID(cloudAgentName, AID.ISLOCALNAME));
+                        myAgent.send(newMessage);
+                    }
+                }
+                ongoingTasks.removeIf(task -> task.completed);
             }
         };
     }

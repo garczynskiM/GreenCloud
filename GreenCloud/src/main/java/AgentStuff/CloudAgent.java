@@ -110,6 +110,7 @@ public class CloudAgent extends Agent {
                             }
                             System.out.println("Started waking up");
                             addBehaviour(createTickerTimeMeasurement());
+                            break;
                         case "New task":
                             try {
                                 TaskWithStatus newTask = new TaskWithStatus();
@@ -119,6 +120,7 @@ public class CloudAgent extends Agent {
                             } catch (IOException | ClassNotFoundException e) {
                                 e.printStackTrace();
                             }
+                            break;
                         case "Task completed green":
                             try {
                                 completedTask = Task.stringToTask(message);
@@ -130,8 +132,11 @@ public class CloudAgent extends Agent {
                                 if(Objects.equals(completedTask.id, task.task.id))
                                 {
                                     task.status = TaskStatus.CompletedWithGreen;
+                                    System.out.format("Cloud received completed task by green container: [task id=%s]!\n",
+                                            task.task.id);
                                 }
                             }
+                            break;
                         case "Task completed nonGreen":
                             try {
                                 completedTask = Task.stringToTask(message);
@@ -143,8 +148,11 @@ public class CloudAgent extends Agent {
                                 if(Objects.equals(completedTask.id, task.task.id))
                                 {
                                     task.status = TaskStatus.CompletedWithoutGreen;
+                                    System.out.format("Cloud received completed task by regional agent: [task id=%s]!\n",
+                                            task.task.id);
                                 }
                             }
+                            break;
                     }
                 }
                 block();
@@ -162,14 +170,14 @@ public class CloudAgent extends Agent {
         };
     }
 
-    /*private Behaviour createTaskGeneratorTicker() {
-        return new TickerBehaviour(this, 3000) {
-            @Override
-            protected void onTick() {
-                tasks.offer(generateTask());
-            }
-        };
-    }*/
+//    private Behaviour createTaskGeneratorTicker() {
+//        return new TickerBehaviour(this, 3000) {
+//            @Override
+//            protected void onTick() {
+//                tasks.add(new TaskWithStatus(generateTask(), TaskStatus.NotSent));
+//            }
+//        };
+//    }
 
     private Behaviour createTaskSenderTicker() {
         return new TickerBehaviour(this, 2000) {
