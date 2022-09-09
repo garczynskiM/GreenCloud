@@ -135,6 +135,7 @@ public class CloudAgent extends Agent {
                                     System.out.format("Cloud received completed task by green container: [task id=%s]!\n",
                                             task.task.id);
                                 }
+                                tasks.remove(task);
                             }
                             break;
                         case "Task completed nonGreen":
@@ -151,6 +152,7 @@ public class CloudAgent extends Agent {
                                     System.out.format("Cloud received completed task by regional agent: [task id=%s]!\n",
                                             task.task.id);
                                 }
+                                tasks.remove(task);
                             }
                             break;
                     }
@@ -187,9 +189,9 @@ public class CloudAgent extends Agent {
                     return;
                 }
                 for (TaskWithStatus task : tasks) {
-                    if (task == null || task.status != TaskStatus.NotSent) {
-                        return;
-                    }
+                    if (task == null) return;
+                    else if (task.status != TaskStatus.NotSent) continue;
+                    System.out.println(task.task.timeRequired);
                     var random = new Random();
                     var agentIndex = random.nextInt(regionalAgentNames.size());
                     var regionalAgent = regionalAgentNames.get(agentIndex);

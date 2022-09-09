@@ -179,7 +179,7 @@ public class RegionalAgent extends Agent {
                 var message = myAgent.receive(mt);
                 if (message != null) {
                     System.out.format("[%s] Got failure message from container [%s]\n", myAgent.getName(),
-                            message.getSender());
+                            message.getSender().getLocalName());
                     var content = message.getContent();
                     Task task = null;
                     try {
@@ -203,7 +203,7 @@ public class RegionalAgent extends Agent {
                         var cfp = new ACLMessage(ACLMessage.CFP);
                         cfp.setConversationId(conversationId);
                         for (var containerAgent : containerAgentNames) {
-                            if (!Objects.equals(containerAgent, message.getSender().toString()))
+                            if (!Objects.equals(containerAgent, message.getSender().getLocalName()))
                                 cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
                         }
                         cfp.setContent(content);

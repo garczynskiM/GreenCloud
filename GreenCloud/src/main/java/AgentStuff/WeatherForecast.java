@@ -45,6 +45,9 @@ public class WeatherForecast {
         double last_random = start_weather;
         for(int i=0; i<forecast_duration; i++) {
             double next_random = random.nextGaussian()*1.5+last_random;
+
+            next_random = 1.0;
+
             if(next_random <0.0) {
                 forecast_list.add("NIGHT");
             }
@@ -72,8 +75,8 @@ public class WeatherForecast {
         //remove first hour
         double last_random = weather_status.get(forecast_list.get(0));
         forecast_list.getFirst();
-        double change_chance = 0.5;
-        double change_change_factor = 0.5;
+        double change_chance = 0.0;
+        double change_change_factor = 0.0;
         for(int i=0; i< forecast_list.size(); i++) {
             //check if we change weather in given hour
             if(random.nextDouble() <= change_chance) {

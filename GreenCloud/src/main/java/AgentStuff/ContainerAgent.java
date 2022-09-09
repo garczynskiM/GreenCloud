@@ -166,7 +166,7 @@ public class ContainerAgent extends Agent {
                             failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
                             myAgent.send(failureMessage);
                             System.out.format("Sending task [id=%s] back to [%s] due to insufficient resources to start execution.\n",
-                                    regionalAgentName, task.id);
+                                    task.id, regionalAgentName);
                         } else {
                             ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
                             currentlyUsedCPU += task.cpuCoresRequired;
