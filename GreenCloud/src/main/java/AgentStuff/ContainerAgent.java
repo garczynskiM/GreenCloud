@@ -157,7 +157,7 @@ public class ContainerAgent extends Agent {
                     var task = tasksToAcceptByRegional.remove(conversationId);
                     if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                         if (currentlyUsedCPU + task.cpuCoresRequired > cpuCores || currentlyUsedRam + task.ramRequired > ramInGB) {
-                            var failureMessage = new ACLMessage(ACLMessage.FAILURE);
+                            var failureMessage = new ACLMessage(ACLMessage.DISCONFIRM);
                             try {
                                 failureMessage.setContent(Task.taskToString(task));
                             } catch (IOException e) {
@@ -222,7 +222,7 @@ public class ContainerAgent extends Agent {
                         {
                             System.out.format("[%s] - can't complete task [%s] because weather is [%s]\n", myAgent.getName(),
                                     ongoingTask.task.id, weatherForecast.forecast_list.get(0));
-                            var failureMessage = new ACLMessage(ACLMessage.FAILURE);
+                            var failureMessage = new ACLMessage(ACLMessage.DISCONFIRM);
                             //cfp.setConversationId(conversationId);
                             failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
                             try {

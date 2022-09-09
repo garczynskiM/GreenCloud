@@ -195,7 +195,7 @@ public class RegionalAgent extends Agent {
         return new CyclicBehaviour() {
             @Override
             public void action() {
-                var mt = MessageTemplate.MatchPerformative(ACLMessage.FAILURE);
+                var mt = MessageTemplate.MatchPerformative(ACLMessage.DISCONFIRM);
                 var message = myAgent.receive(mt);
                 if (message != null) {
                     System.out.format("[%s] Got failure message from container [%s]\n", myAgent.getName(),
