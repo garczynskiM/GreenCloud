@@ -25,7 +25,7 @@ public class RegionalAgent extends Agent {
     String cloudAgentName;
     Time timeElapsed = new Time(0);
     int secondsElapsed = 0;
-    List<Task> tasksToDistribute;
+    List<RegionalTaskWithStatus> tasksToDistribute;
     List<OngoingTask> ongoingTasks;
     Graph display;
     Map<String, Task> tasksSent;
@@ -50,6 +50,7 @@ public class RegionalAgent extends Agent {
         display.addNode(getLocalName());
         initialNodeStyle();
         display.addEdge(cloudAgentLocalName + " " + getLocalName(), cloudAgentLocalName, getLocalName());
+        tasksToDistribute = new ArrayList<>();
         for (ContainerAgentData data: initData.AgentsToCreate) {
             ContainerController cc = getContainerController();
             Object[] containerArgs = new Object[4];
@@ -133,6 +134,23 @@ public class RegionalAgent extends Agent {
                 secondsElapsed++;
                 timeElapsed.setTime(secondsElapsed * 1000L);
                 //System.out.println(getLocalName() + " - " + timeElapsed);
+
+                LocalDateTime rightNow = LocalDateTime.now();
+                for(int i = 0; i < tasksToDistribute.size();)
+                {
+                    var task = tasksToDistribute.get(i);
+                    LocalDateTime whenEnd = rightNow.plusSeconds(task.task.timeRequired.toSeconds());
+                    if(task.status == TaskStatus.NotSent && (whenEnd.isAfter(task.task.deadline) ||
+                                                             whenEnd.isEqual(task.task.deadline)))
+                    {
+                        var taskForRegional = tasksSent.remove(task.conversationId);
+                        ongoingTasks.add(new OngoingTask(task.task, LocalDateTime.now()));
+                        System.out.format("[%s] Starting doing task by regional agent: [task id=%s]!\n",
+                                myAgent.getName(), task.task.id);
+                        tasksToDistribute.remove(task);
+                    }
+                    else i++;
+                }
             }
         };
     }
@@ -150,6 +168,8 @@ public class RegionalAgent extends Agent {
                     var conversationId = UUID.randomUUID().toString();
                     try {
                         tasksSent.put(conversationId, Task.stringToTask(content));
+                        tasksToDistribute.add(new RegionalTaskWithStatus(Task.stringToTask(content),
+                                TaskStatus.NotSent, conversationId));
                     } catch (IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -199,6 +219,17 @@ public class RegionalAgent extends Agent {
                             tasksSent.remove(keyToRemove);
                         }
                         var conversationId = UUID.randomUUID().toString();
+
+                        for(RegionalTaskWithStatus taskStatus: tasksToDistribute)
+                        {
+                            if(Objects.equals(taskStatus.task.id, task.id))
+                            {
+                                taskStatus.status = TaskStatus.NotSent;
+                                taskStatus.conversationId = conversationId;
+                                break;
+                            }
+                        }
+
                         tasksSent.put(conversationId, task);
                         var cfp = new ACLMessage(ACLMessage.CFP);
                         cfp.setConversationId(conversationId);
@@ -280,6 +311,16 @@ public class RegionalAgent extends Agent {
                 message.setConversationId(conversationId);
                 message.addReceiver(bestContainer);
                 myAgent.send(message);
+
+                for(RegionalTaskWithStatus taskStatus: tasksToDistribute)
+                {
+                    if(Objects.equals(taskStatus.conversationId, conversationId))
+                    {
+                        taskStatus.status = TaskStatus.Sent;
+                        taskStatus.conversationId = conversationId;
+                        break;
+                    }
+                }
 
                 var rejectMessage = new ACLMessage(ACLMessage.REJECT_PROPOSAL);
                 rejectMessage.setConversationId(conversationId);
