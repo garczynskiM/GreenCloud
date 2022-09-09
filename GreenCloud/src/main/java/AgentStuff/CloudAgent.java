@@ -204,8 +204,8 @@ public class CloudAgent extends Agent {
                         e.printStackTrace();
                     }
                     myAgent.send(message);
-                System.out.format("[%s] Sent task to [%s]!\nTask will take %s hours.\n",
-                        myAgent.getName(), regionalAgentAID.getName(), task.task.timeRequired.toSeconds());
+                System.out.format("[%s] Sent task [id=%s] to [%s]!\nTask will take %s hours.\n",
+                        myAgent.getName(), task.task.id, regionalAgentAID.getName(), task.task.timeRequired.toSeconds());
                     task.status = TaskStatus.Sent;
                 }
             }

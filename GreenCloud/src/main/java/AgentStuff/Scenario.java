@@ -69,6 +69,9 @@ public class Scenario
         tasksToDistribute.add(new TaskToDistribute(new Task("TaskToDoByRegional",
                 Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(6*numberOfTasks)),
                 (numberOfTasks - 1)*6));
+        tasksToDistribute.add(new TaskToDistribute(new Task("TaskAfterConflict",
+                Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(6*(numberOfTasks + 1))),
+                numberOfTasks*6));
 
         return new Scenario(systemInfo, tasksToDistribute, startOfCreation);
     }
