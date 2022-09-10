@@ -52,9 +52,8 @@ public class CloudAgent extends Agent {
         display.addNode(getLocalName());
         initialNodeStyle();
         numberOfTasksTotal = (int)args[2];
-        System.out.println(numberOfTasksTotal);
         scenarioAgentName = (String)args[3];
-        tasks = new LinkedList<>();
+        tasks = new ArrayList<>();
 
         for (RegionalAgentData data: initData.AgentsToCreate) {
             ContainerController cc = getContainerController();
@@ -83,6 +82,7 @@ public class CloudAgent extends Agent {
             regionalAgentNames.add(data.RegionalAgentName);
         }
         addBehaviour(createCyclicSystemStartupManager());
+        //addBehaviour(createTaskCheckerTicker());
         //addBehaviour(createTaskGeneratorTicker());
         addBehaviour(createTaskSenderTicker());
     }
@@ -136,14 +136,18 @@ public class CloudAgent extends Agent {
                                 e.printStackTrace();
                             }
                             if(completedTask == null) return;
-                            for (TaskWithStatus task : tasks) {
+                            for(int i = 0; i < tasks.size();)
+                            {
+                                TaskWithStatus task = tasks.get(i);
                                 if(Objects.equals(completedTask.id, task.task.id))
                                 {
                                     task.status = TaskStatus.CompletedWithGreen;
                                     System.out.format("Cloud received completed task by green container: [task id=%s]!\n",
                                             task.task.id);
+                                    tasks.remove(task);
+                                    break;
                                 }
-                                tasks.remove(task);
+                                else i++;
                             }
                             numberOfTasksCompleted++;
                             numberOfTasksGreen++;
@@ -156,14 +160,18 @@ public class CloudAgent extends Agent {
                                 e.printStackTrace();
                             }
                             if(completedTask == null) return;
-                            for (TaskWithStatus task : tasks) {
+                            for(int i = 0; i < tasks.size();)
+                            {
+                                TaskWithStatus task = tasks.get(i);
                                 if(Objects.equals(completedTask.id, task.task.id))
                                 {
                                     task.status = TaskStatus.CompletedWithoutGreen;
                                     System.out.format("Cloud received completed task by regional agent: [task id=%s]!\n",
                                             task.task.id);
+                                    tasks.remove(task);
+                                    break;
                                 }
-                                tasks.remove(task);
+                                else i++;
                             }
                             numberOfTasksCompleted++;
                             numberOfTasksNonGreen++;
@@ -209,7 +217,7 @@ public class CloudAgent extends Agent {
 //    }
 
     private Behaviour createTaskSenderTicker() {
-        return new TickerBehaviour(this, 2000) {
+        return new TickerBehaviour(this, 500) {
             @Override
             protected void onTick() {
                 if (tasks.isEmpty()) {
@@ -238,6 +246,15 @@ public class CloudAgent extends Agent {
             }
         };
     }
+
+    /*private Behaviour createTaskCheckerTicker() {
+        return new TickerBehaviour(this, 30000) {
+            @Override
+            protected void onTick() {
+                System.out.format("System has completed %s out of %s tasks so far.\n", numberOfTasksCompleted, numberOfTasksTotal);
+            }
+        };
+    }*/
 
     private void checkIfTasksCompleted()
     {

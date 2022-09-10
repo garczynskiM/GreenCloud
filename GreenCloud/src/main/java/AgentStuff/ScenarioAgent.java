@@ -53,7 +53,9 @@ public class ScenarioAgent extends Agent
         System.out.println("Scenario agent created");
         //scenarioToRealise = Scenario.createScenario1();
         //scenarioToRealise = Scenario.conflictingTaskScenario();
-        scenarioToRealise = Scenario.doubleTaskScenario();
+        //scenarioToRealise = Scenario.doubleTaskScenario();
+        //scenarioToRealise = Scenario.HundredTasksScenario();
+        scenarioToRealise = Scenario.TenTasksScenario();
         timeElapsed = new Time(0);
         /*Object[] args = getArguments();
         graph = (Graph)args[0];*/

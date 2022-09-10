@@ -46,8 +46,6 @@ public class WeatherForecast {
         for(int i=0; i<forecast_duration; i++) {
             double next_random = random.nextGaussian()*1.5+last_random;
 
-            next_random = 1.0;
-
             if(next_random <0.0) {
                 forecast_list.add("NIGHT");
             }
@@ -63,7 +61,7 @@ public class WeatherForecast {
             else {
                 forecast_list.add("SUNNY");
             }
-            last_random = next_random <= 1.0 ? next_random : 1.0;
+            last_random = Math.min(next_random, 1.0);
         }
     }
     //used to expand forecast range, for example we need forecast for 10hours when we only have for 5h
@@ -75,8 +73,8 @@ public class WeatherForecast {
         //remove first hour
         double last_random = weather_status.get(forecast_list.get(0));
         forecast_list.getFirst();
-        double change_chance = 0.0;
-        double change_change_factor = 0.0;
+        double change_chance = 0.02;
+        double change_change_factor = 0.01;
         for(int i=0; i< forecast_list.size(); i++) {
             //check if we change weather in given hour
             if(random.nextDouble() <= change_chance) {
@@ -97,7 +95,7 @@ public class WeatherForecast {
                     forecast_list.set(i, "SUNNY");
                 }
             }
-            change_change_factor *= 0.5;
+            change_change_factor *= 1.5;
             change_chance += change_change_factor;
             last_random = weather_status.get(forecast_list.get(i));
         }

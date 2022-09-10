@@ -106,12 +106,12 @@ public class RegionalAgent extends Agent {
                             addBehaviour(createTickerTimeMeasurement());
                             break;
                         case "Task completed":
-                            var content = rcv.getContent();
                             var newMessage = new ACLMessage(ACLMessage.INFORM);
                             newMessage.setOntology("Task completed green");
-                            newMessage.setContent(content);
+                            newMessage.setContent(message);
                             newMessage.addReceiver(new AID(cloudAgentLocalName, AID.ISLOCALNAME));
                             myAgent.send(newMessage);
+                            System.out.format("[%s] Received info from %s about task completion\n", myAgent.getName(), rcv.getSender());
                             break;
                         case "System shutdown":
                             for (String containerAgentName : containerAgentNames) {
