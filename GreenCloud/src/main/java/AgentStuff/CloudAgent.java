@@ -27,6 +27,11 @@ public class CloudAgent extends Agent {
     int secondsElapsed = 0;
     List<TaskWithStatus> tasks;
     Graph display;
+    int numberOfTasksTotal;
+    int numberOfTasksCompleted = 0;
+    int numberOfTasksGreen = 0;
+    int numberOfTasksNonGreen = 0;
+    String scenarioAgentName;
 
     private void initialNodeStyle() {
         Node node = display.getNode(getLocalName());
@@ -46,6 +51,9 @@ public class CloudAgent extends Agent {
         display = (Graph)args[1];
         display.addNode(getLocalName());
         initialNodeStyle();
+        numberOfTasksTotal = (int)args[2];
+        System.out.println(numberOfTasksTotal);
+        scenarioAgentName = (String)args[3];
         tasks = new LinkedList<>();
 
         for (RegionalAgentData data: initData.AgentsToCreate) {
@@ -137,6 +145,9 @@ public class CloudAgent extends Agent {
                                 }
                                 tasks.remove(task);
                             }
+                            numberOfTasksCompleted++;
+                            numberOfTasksGreen++;
+                            checkIfTasksCompleted();
                             break;
                         case "Task completed nonGreen":
                             try {
@@ -154,6 +165,22 @@ public class CloudAgent extends Agent {
                                 }
                                 tasks.remove(task);
                             }
+                            numberOfTasksCompleted++;
+                            numberOfTasksNonGreen++;
+                            checkIfTasksCompleted();
+                            break;
+                        case "System shutdown":
+                            for (String regionalAgentName : regionalAgentNames) {
+                                ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
+                                msg.addReceiver(new AID(regionalAgentName, AID.ISLOCALNAME));
+                                msg.setLanguage("English");
+                                msg.setOntology("System shutdown");
+                                msg.setContent("Job done, shut down.");
+                                send(msg);
+                            }
+                            System.out.format("All tasks complete. There were %s tasks, out of which %s were completed " +
+                                    "green and %s were completed non-green.\n", numberOfTasksTotal, numberOfTasksGreen, numberOfTasksNonGreen);
+                            takeDown();
                             break;
                     }
                 }
@@ -210,6 +237,19 @@ public class CloudAgent extends Agent {
                 }
             }
         };
+    }
+
+    private void checkIfTasksCompleted()
+    {
+        if(numberOfTasksTotal == numberOfTasksCompleted)
+        {
+            ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
+            msg.addReceiver(new AID(scenarioAgentName, AID.ISLOCALNAME));
+            msg.setLanguage("English");
+            msg.setOntology("Scenario complete");
+            msg.setContent("All tasks completed.");
+            send(msg);
+        }
     }
 
     @Override

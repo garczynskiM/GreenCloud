@@ -8,6 +8,7 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
@@ -17,6 +18,7 @@ import org.graphstream.graph.implementations.SingleGraph;
 
 import java.io.IOException;
 import java.sql.Time;
+import java.util.Objects;
 
 public class ScenarioAgent extends Agent
 {
@@ -50,8 +52,8 @@ public class ScenarioAgent extends Agent
     {
         System.out.println("Scenario agent created");
         //scenarioToRealise = Scenario.createScenario1();
-        scenarioToRealise = Scenario.conflictingTaskScenario();
-        //scenarioToRealise = Scenario.doubleTaskScenario();
+        //scenarioToRealise = Scenario.conflictingTaskScenario();
+        scenarioToRealise = Scenario.doubleTaskScenario();
         timeElapsed = new Time(0);
         /*Object[] args = getArguments();
         graph = (Graph)args[0];*/
@@ -60,9 +62,11 @@ public class ScenarioAgent extends Agent
         graph.setAttribute("ui.stylesheet", styleSheet);
         graph.display();
         ContainerController cc = getContainerController();
-        Object[] cloudArgs = new Object[2];
+        Object[] cloudArgs = new Object[4];
         cloudArgs[0] = scenarioToRealise.SystemInfo;
         cloudArgs[1] = graph;
+        cloudArgs[2] = scenarioToRealise.TasksToDistribute.size();
+        cloudArgs[3] = this.getLocalName();
         AgentContainer c = getContainerController();
         try {
             AgentController a = c.createNewAgent(cloudAgentNickname,"AgentStuff.CloudAgent", cloudArgs);
@@ -95,6 +99,7 @@ public class ScenarioAgent extends Agent
             protected void onWake()
             {
                 Behaviour cyclicMessageSender = createTickerMessageSender();
+                Behaviour cyclicMessageReceiver = createCyclicJobCompletionManager();
 
                 // Send info to system to start counting time
                 ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
@@ -105,6 +110,18 @@ public class ScenarioAgent extends Agent
                 send(msg);
                 scenarioToRealise.updateTaskDeadline();
                 myAgent.addBehaviour(cyclicMessageSender);
+                myAgent.addBehaviour(cyclicMessageReceiver);
+            }
+        };
+    }
+    private Behaviour createWakerSystemShutdown()
+    {
+        return new WakerBehaviour(this, 5000)
+        {
+            @Override
+            protected void onWake()
+            {
+                takeDown();
             }
         };
     }
@@ -145,4 +162,33 @@ public class ScenarioAgent extends Agent
             }
         };
     };
+    private Behaviour createCyclicJobCompletionManager() {
+        return new CyclicBehaviour() {
+            @Override
+            public void action() {
+                MessageTemplate mt =
+                        MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+                ACLMessage rcv = receive(mt);
+                if(rcv != null) {
+                    String message = rcv.getContent();
+                    String ontology = rcv.getOntology();
+                    switch (ontology) {
+                        case "Scenario complete":
+                            Behaviour oneShotSystemShutdown = createWakerSystemShutdown();
+
+                            // Propagate system shutdown
+                            ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
+                            msg.addReceiver(new AID(cloudAgentNickname, AID.ISLOCALNAME));
+                            msg.setLanguage("English");
+                            msg.setOntology("System shutdown");
+                            msg.setContent("Job done, shut down.");
+                            send(msg);
+                            myAgent.addBehaviour(oneShotSystemShutdown);
+                            break;
+                    }
+                }
+                block();
+            }
+        };
+    }
 }

@@ -82,8 +82,8 @@ public class RegionalAgent extends Agent {
         addBehaviour(createTaskCompleteCheckerTicker());
     }
     private Behaviour createCyclicSystemStartupManager() {
-        return new SimpleBehaviour() {
-            private boolean finished = false;
+        return new CyclicBehaviour() {
+
             @Override
             public void action() {
                 MessageTemplate mt =
@@ -104,26 +104,31 @@ public class RegionalAgent extends Agent {
                                 send(msg);
                             }
                             addBehaviour(createTickerTimeMeasurement());
-                            finished = true;
                             break;
                         case "Task completed":
                             var content = rcv.getContent();
                             var newMessage = new ACLMessage(ACLMessage.INFORM);
                             newMessage.setOntology("Task completed green");
                             newMessage.setContent(content);
-                            newMessage.addReceiver(new AID(cloudAgentName, AID.ISLOCALNAME));
+                            newMessage.addReceiver(new AID(cloudAgentLocalName, AID.ISLOCALNAME));
                             myAgent.send(newMessage);
+                            break;
+                        case "System shutdown":
+                            for (String containerAgentName : containerAgentNames) {
+                                ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
+                                msg.addReceiver(new AID(containerAgentName, AID.ISLOCALNAME));
+                                msg.setLanguage("English");
+                                msg.setOntology("System shutdown");
+                                msg.setContent("Job done, shut down.");
+                                send(msg);
+                            }
+                            takeDown();
                             break;
                     }
                 } else
                 {
                     block();
                 }
-            }
-
-            @Override
-            public boolean done() {
-                return finished;
             }
         };
     }

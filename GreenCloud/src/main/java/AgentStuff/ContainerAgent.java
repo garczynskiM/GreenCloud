@@ -83,6 +83,9 @@ public class ContainerAgent extends Agent {
                         case "System startup":
                             addBehaviour(createTickerTimeMeasurement());
                             break;
+                        case "System shutdown":
+                            takeDown();
+                            break;
                     }
                 }
                 block();
@@ -198,6 +201,7 @@ public class ContainerAgent extends Agent {
                 double currentlyAvailableRAM = currentEnergyProduction/maxEnergyUsage * ramInGB;
                 int currentlyAvailableCPU = (int) (currentEnergyProduction/maxEnergyUsage * cpuCores);
                 ongoingTasks.sort(new SortByRemainingDuration());
+
                 for (OngoingTask ongoingTask : ongoingTasks) {
                     if (Duration.between(ongoingTask.startTime, LocalDateTime.now()).toMillis() >=
                             ongoingTask.task.timeRequired.toMillis()) {
