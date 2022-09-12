@@ -101,7 +101,7 @@ public class CloudAgent extends Agent {
                 MessageTemplate mt =
                         MessageTemplate.MatchPerformative(ACLMessage.INFORM);
                 ACLMessage rcv = receive(mt);
-                if(rcv != null) {
+                while(rcv != null) {
                     String message = rcv.getContent();
                     String ontology = rcv.getOntology();
                     Task completedTask = null;
@@ -142,8 +142,8 @@ public class CloudAgent extends Agent {
                                 if(Objects.equals(completedTask.id, task.task.id))
                                 {
                                     task.status = TaskStatus.CompletedWithGreen;
-                                    System.out.format("Cloud received completed task by green container: [task id=%s]!\n",
-                                            task.task.id);
+                                    //System.out.format("Cloud received completed task by green container: [task id=%s]!\n",
+                                    //       task.task.id);
                                     tasks.remove(task);
                                     break;
                                 }
@@ -166,8 +166,8 @@ public class CloudAgent extends Agent {
                                 if(Objects.equals(completedTask.id, task.task.id))
                                 {
                                     task.status = TaskStatus.CompletedWithoutGreen;
-                                    System.out.format("Cloud received completed task by regional agent: [task id=%s]!\n",
-                                            task.task.id);
+                                    //System.out.format("Cloud received completed task by regional agent: [task id=%s]!\n",
+                                    //        task.task.id);
                                     tasks.remove(task);
                                     break;
                                 }
@@ -191,6 +191,7 @@ public class CloudAgent extends Agent {
                             takeDown();
                             break;
                     }
+                    rcv = receive(mt);
                 }
                 block();
             }
@@ -217,7 +218,7 @@ public class CloudAgent extends Agent {
 //    }
 
     private Behaviour createTaskSenderTicker() {
-        return new TickerBehaviour(this, 500) {
+        return new TickerBehaviour(this, 1000) {
             @Override
             protected void onTick() {
                 if (tasks.isEmpty()) {
@@ -258,6 +259,7 @@ public class CloudAgent extends Agent {
 
     private void checkIfTasksCompleted()
     {
+        System.out.format("Is %s equal to total tasks %s?\n", numberOfTasksCompleted, numberOfTasksTotal);
         if(numberOfTasksTotal == numberOfTasksCompleted)
         {
             ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?

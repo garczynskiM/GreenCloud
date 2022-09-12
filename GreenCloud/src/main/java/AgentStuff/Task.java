@@ -32,12 +32,22 @@ public class Task implements Serializable {
     }
 
     public static Task stringToTask (String string) throws IOException, ClassNotFoundException {
-        final byte[] bytes = Base64.getDecoder().decode(string);
-        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        ObjectInputStream oInputStream = new ObjectInputStream(bis);
-        Task task = (Task) oInputStream.readObject();
-        oInputStream.close();
+        //System.out.println(string);
+        try
+        {
+            final byte[] bytes = Base64.getDecoder().decode(string);
+            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+            ObjectInputStream oInputStream = new ObjectInputStream(bis);
+            Task task = (Task) oInputStream.readObject();
+            oInputStream.close();
 
-        return task;
+            return task;
+        }
+        catch(IllegalArgumentException e)
+        {
+            System.out.println(string);
+            e.printStackTrace();
+        }
+        return null;
     }
 }

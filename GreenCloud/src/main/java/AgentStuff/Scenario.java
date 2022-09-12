@@ -129,7 +129,7 @@ public class Scenario
                     Duration.ofSeconds(4),16, 32, startOfCreation.plusSeconds(300)),
                     0));
         }
-        for(int i = 0; i < 3; i++)
+        for(int i = 7; i < 10; i++)
         {
             tasksToDistribute.add(new TaskToDistribute(new Task("Task" + Integer.toString(i + 1),
                     Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(300)),

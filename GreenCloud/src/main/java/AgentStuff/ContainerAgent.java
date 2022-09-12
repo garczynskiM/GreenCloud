@@ -115,7 +115,7 @@ public class ContainerAgent extends Agent {
             public void action() {
                 var mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
                 var msg = myAgent.receive(mt);
-                if (msg != null) {
+                while (msg != null) {
                     try {
                         var task = Task.stringToTask(msg.getContent());
                         var goodness = check_weather_heuristic(task);
@@ -139,10 +139,9 @@ public class ContainerAgent extends Agent {
                     } catch (IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }
+                    msg = myAgent.receive(mt);
                 }
-                else {
-                    block();
-                }
+                block();
             }
         };
     }
@@ -155,7 +154,7 @@ public class ContainerAgent extends Agent {
                 var mt = MessageTemplate.or(MessageTemplate.MatchPerformative(
                         ACLMessage.ACCEPT_PROPOSAL), MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL));
                 var msg = myAgent.receive(mt);
-                if (msg != null) {
+                while (msg != null) {
                     var conversationId = msg.getConversationId();
                     var task = tasksToAcceptByRegional.remove(conversationId);
                     if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
@@ -178,10 +177,9 @@ public class ContainerAgent extends Agent {
                         }
                     }
                     finished = true;
+                    msg = myAgent.receive(mt);
                 }
-                else {
-                    block();
-                }
+                block();
             }
 
             @Override
@@ -254,13 +252,26 @@ public class ContainerAgent extends Agent {
             weatherForecast.expand_forecast(task_hours - weatherForecast.forecast_list.size());
         //in our heuristic the more the better -> result. Regional agent should choose container with best result
         double result = 0.0;
+        double temp;
         for(int i=0; i<=task_hours;i++){
-            result += weather_resource_to_energy_ratio(task.ramRequired,
-                        weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
+            temp = weather_resource_to_energy_ratio(task.ramRequired,
+                    weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
                     "RAM");
-            result += weather_resource_to_energy_ratio(task.cpuCoresRequired,
+            if(temp < 0.0)
+            {
+                result = -1;
+                break;
+            }
+            result += temp;
+            temp = weather_resource_to_energy_ratio(task.cpuCoresRequired,
                     weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
                     "CPU");
+            if(temp < 0.0)
+            {
+                result = -1;
+                break;
+            }
+            result += temp;
         }
         return result;
     }
@@ -276,11 +287,11 @@ public class ContainerAgent extends Agent {
             //in our heuristic the more the better (cannot be more than 1).
             //might happen than task is too big for container -> too much resources.
             // Then the result will raise only slightly
-            double result = energy_usage_ratio * ramInGB / resource_required;
+            double result = ((energy_usage_ratio * ramInGB) - currentlyUsedRam) / resource_required;
             return Math.min(result, 1.0);
         }
         else if(Objects.equals(resource_type, "CPU")) {
-            double result = energy_usage_ratio * cpuCores / resource_required;
+            double result = ((energy_usage_ratio * cpuCores) - currentlyUsedCPU) / resource_required;
             return Math.min(result, 1.0);
         }
         return -1;

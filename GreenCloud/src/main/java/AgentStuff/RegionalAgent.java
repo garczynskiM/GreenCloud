@@ -89,7 +89,7 @@ public class RegionalAgent extends Agent {
                 MessageTemplate mt =
                         MessageTemplate.MatchPerformative(ACLMessage.INFORM);
                 ACLMessage rcv = receive(mt);
-                if(rcv != null) {
+                while(rcv != null) {
                     String message = rcv.getContent();
                     String ontology = rcv.getOntology();
                     switch (ontology) {
@@ -111,7 +111,7 @@ public class RegionalAgent extends Agent {
                             newMessage.setContent(message);
                             newMessage.addReceiver(new AID(cloudAgentLocalName, AID.ISLOCALNAME));
                             myAgent.send(newMessage);
-                            System.out.format("[%s] Received info from %s about task completion\n", myAgent.getName(), rcv.getSender());
+                            //System.out.format("[%s] Received info from %s about task completion\n", myAgent.getName(), rcv.getSender());
                             break;
                         case "System shutdown":
                             for (String containerAgentName : containerAgentNames) {
@@ -125,10 +125,9 @@ public class RegionalAgent extends Agent {
                             takeDown();
                             break;
                     }
-                } else
-                {
-                    block();
+                    rcv = receive(mt);
                 }
+                block();
             }
         };
     }
@@ -167,7 +166,7 @@ public class RegionalAgent extends Agent {
                 var cloudAID = new AID(cloudAgentName, AID.ISLOCALNAME);
                 var mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
                 var message = myAgent.receive(mt);
-                if (message != null) {
+                while (message != null) {
                     System.out.format("[%s] Got message from cloud\n", myAgent.getName());
                     var content = message.getContent();
                     var conversationId = UUID.randomUUID().toString();
@@ -188,9 +187,9 @@ public class RegionalAgent extends Agent {
                     System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
                     mt = MessageTemplate.MatchConversationId(conversationId);
                     myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
-                } else {
-                    block();
+                    message = myAgent.receive(mt);
                 }
+                block();
             }
         };
     }
@@ -239,7 +238,7 @@ public class RegionalAgent extends Agent {
                         var cfp = new ACLMessage(ACLMessage.CFP);
                         cfp.setConversationId(conversationId);
                         for (var containerAgent : containerAgentNames) {
-                            if (!Objects.equals(containerAgent, message.getSender().getLocalName()))
+                            //if (!Objects.equals(containerAgent, message.getSender().getLocalName()))
                                 cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
                         }
                         cfp.setContent(content);
@@ -248,9 +247,9 @@ public class RegionalAgent extends Agent {
                         mt = MessageTemplate.MatchConversationId(conversationId);
                         myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
                     }
-                } else {
-                    block();
+                    //message = myAgent.receive(mt);
                 }
+                block();
             }
         };
     }
@@ -264,7 +263,7 @@ public class RegionalAgent extends Agent {
             @Override
             public void action() {
                 var reply = myAgent.receive(mt);
-                if (reply != null) {
+                while (reply != null) {
                     repliesCount++;
                     if (reply.getPerformative() == ACLMessage.PROPOSE) {
                         // got proposal
@@ -287,10 +286,9 @@ public class RegionalAgent extends Agent {
                         }
                         finished = true;
                     }
+                    reply = myAgent.receive(mt);
                 }
-                else {
-                    block();
-                }
+                block();
             }
 
             @Override
@@ -359,7 +357,7 @@ public class RegionalAgent extends Agent {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        newMessage.addReceiver(new AID(cloudAgentName, AID.ISLOCALNAME));
+                        newMessage.addReceiver(new AID(cloudAgentLocalName, AID.ISLOCALNAME));
                         myAgent.send(newMessage);
                     }
                 }
