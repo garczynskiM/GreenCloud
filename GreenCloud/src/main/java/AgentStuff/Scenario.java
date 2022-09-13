@@ -107,14 +107,14 @@ public class Scenario
         {
             europeRegData.AgentsToCreate.add(new ContainerAgentData("Europe" + Integer.toString(i + 1),
                     "null", "EuropeManager", Duration.ofMillis(250), 1000,
-                    64, 100,200, 32));
+                    64, 100,200, 32, 100 + i));
         }
         RegionalAgentData americaRegData = new RegionalAgentData(new ArrayList<>(), "AmericaManager");
         for(int i = 0; i < 2; i++)
         {
             americaRegData.AgentsToCreate.add(new ContainerAgentData("America" + Integer.toString(i + 1),
                     "null","AmericaManager", Duration.ofMillis(250), 1000,
-                    64, 100,200, 32));
+                    64, 100,200, 32, 102 + i));
         }
         List<RegionalAgentData> cloudInfo = new ArrayList<>();
         cloudInfo.add(europeRegData);
@@ -144,14 +144,14 @@ public class Scenario
         {
             europeRegData.AgentsToCreate.add(new ContainerAgentData("Europe" + Integer.toString(i + 1),
                     "null", "EuropeManager", Duration.ofMillis(250), 1000,
-                    64, 100,200, 32));
+                    64, 100,200, 32, 100 + i));
         }
         RegionalAgentData americaRegData = new RegionalAgentData(new ArrayList<>(), "AmericaManager");
         for(int i = 0; i < 4; i++)
         {
             americaRegData.AgentsToCreate.add(new ContainerAgentData("America" + Integer.toString(i + 1),
                     "null","AmericaManager", Duration.ofMillis(250), 1000,
-                    64, 100,200, 32));
+                    64, 100,200, 32, 100 + i));
         }
         List<RegionalAgentData> cloudInfo = new ArrayList<>();
         cloudInfo.add(europeRegData);
@@ -181,14 +181,14 @@ public class Scenario
         {
             europeRegData.AgentsToCreate.add(new ContainerAgentData("Europe" + Integer.toString(i + 1),
                     "null", "EuropeManager", Duration.ofMillis(250), 1000,
-                    64, 100,200, 32));
+                    64, 100,200, 32, 100 + i));
         }
         RegionalAgentData americaRegData = new RegionalAgentData(new ArrayList<>(), "AmericaManager");
         for(int i = 0; i < 3; i++)
         {
             americaRegData.AgentsToCreate.add(new ContainerAgentData("America" + Integer.toString(i + 1),
                     "null","AmericaManager", Duration.ofMillis(250), 1000,
-                    64, 100,200, 32));
+                    64, 100,200, 32, 103 + i));
         }
         List<RegionalAgentData> cloudInfo = new ArrayList<>();
         cloudInfo.add(europeRegData);

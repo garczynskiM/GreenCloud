@@ -44,7 +44,7 @@ public class WeatherForecast {
     private void create_forecast(int forecast_duration, double start_weather, int seed) {
         double last_random = start_weather;
         for(int i=0; i<forecast_duration; i++) {
-            double next_random = random.nextGaussian()*1.5+last_random;
+            double next_random = random.nextGaussian()*0.66+last_random;
 
             if(next_random <0.0) {
                 forecast_list.add("NIGHT");
@@ -61,7 +61,8 @@ public class WeatherForecast {
             else {
                 forecast_list.add("SUNNY");
             }
-            last_random = Math.min(next_random, 1.0);
+            //last_random = Math.min(next_random, 1.0);
+            last_random = Math.max(-0.5, Math.min(next_random, 1.0));
         }
     }
     //used to expand forecast range, for example we need forecast for 10hours when we only have for 5h

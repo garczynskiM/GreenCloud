@@ -65,7 +65,7 @@ public class ContainerAgent extends Agent {
         initialNodeStyle();
         display.addEdge(regionalAgentLocalName + " " + getLocalName(), regionalAgentLocalName, getLocalName());
         addBehaviour(createCyclicSystemStartupManager());
-        weatherForecast = new WeatherForecast(5);
+        weatherForecast = new WeatherForecast(5, initData.Seed);
         addBehaviour(createTaskReceiverCyclic());
         addBehaviour(createTaskCompleteCheckerTicker());
     }
@@ -121,10 +121,15 @@ public class ContainerAgent extends Agent {
                         var goodness = check_weather_heuristic(task);
                         var reply = msg.createReply();
                         reply.setConversationId(msg.getConversationId());
-                        if (goodness <= 0.0) {
+                        if (goodness < 0.0) {
                             reply.setPerformative(ACLMessage.REFUSE);
                             reply.setContent("Cannot do the task!");
                             System.out.format("[%s] Cannot do the task!\n", myAgent.getName());
+                            /*for(int i = 0; i < weatherForecast.forecast_list.size(); i++)
+                            {
+                                System.out.format("%s ", weatherForecast.forecast_list.get(i));
+                            }
+                            System.out.format("\n");*/
                         }
                         else {
                             tasksToAcceptByRegional.put(msg.getConversationId(), task);
@@ -248,18 +253,19 @@ public class ContainerAgent extends Agent {
 
     //main heuristic method -> returns how possible it is to finish given task
     private double check_weather_heuristic(Task task) {
-        int task_hours = (int) task.timeRequired.toHours();
+        int task_hours = (int) task.timeRequired.toSeconds();
         if(weatherForecast.forecast_list.size() < task_hours)
             weatherForecast.expand_forecast(task_hours - weatherForecast.forecast_list.size());
         //in our heuristic the more the better -> result. Regional agent should choose container with best result
         double result = 0.0;
         double temp;
-        for(int i=0; i<=task_hours;i++){
+        for(int i=0; i<task_hours;i++){
             temp = weather_resource_to_energy_ratio(task.ramRequired,
                     weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
                     "RAM");
             if(temp < 0.0)
             {
+                //System.out.println("Bad weather");
                 result = -1;
                 break;
             }
