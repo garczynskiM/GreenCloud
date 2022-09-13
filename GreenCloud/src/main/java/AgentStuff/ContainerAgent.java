@@ -260,9 +260,16 @@ public class ContainerAgent extends Agent {
         double result = 0.0;
         double temp;
         for(int i=0; i<task_hours;i++){
+            var freedRam = 0;
+            var freedCPU = 0;
+            for (var t : ongoingTasks) {
+                if(i >= t.task.timeRequired.toSeconds() - Duration.between(t.startTime, LocalDateTime.now()).toSeconds()) {
+                    freedCPU += t.task.cpuCoresRequired;
+                    freedRam += t.task.ramRequired;
+                }
+            }
             temp = weather_resource_to_energy_ratio(task.ramRequired,
-                    weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
-                    "RAM");
+                    weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)), "RAM", freedRam);
             if(temp < 0.0)
             {
                 //System.out.println("Bad weather");
@@ -271,8 +278,7 @@ public class ContainerAgent extends Agent {
             }
             result += temp;
             temp = weather_resource_to_energy_ratio(task.cpuCoresRequired,
-                    weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)),
-                    "CPU");
+                    weatherForecast.weather_status.get(weatherForecast.forecast_list.get(i)), "CPU", freedCPU);
             if(temp < 0.0)
             {
                 result = -1;
@@ -283,8 +289,8 @@ public class ContainerAgent extends Agent {
         return result;
     }
 
-    private double weather_resource_to_energy_ratio(double resource_required,
-                                                    double energy_ratio, String resource_type) {
+    private double weather_resource_to_energy_ratio(double resource_required, double energy_ratio, String resource_type,
+                                                    double freed_resource) {
         double energy_production = energy_ratio * maxEnergyProduction; //weather energy production
         //ratio >= 1 -> enough energy to power all resources; else not all resources are available
         double energy_usage_ratio = energy_production / maxEnergyUsage;
@@ -294,11 +300,13 @@ public class ContainerAgent extends Agent {
             //in our heuristic the more the better (cannot be more than 1).
             //might happen than task is too big for container -> too much resources.
             // Then the result will raise only slightly
-            double result = ((energy_usage_ratio * ramInGB) - currentlyUsedRam - resource_required) / resource_required;
+            // HERE
+            double result = ((energy_usage_ratio * ramInGB) - currentlyUsedRam + freed_resource - resource_required) / resource_required;
             return Math.min(result, 1.0);
         }
         else if(Objects.equals(resource_type, "CPU")) {
-            double result = ((energy_usage_ratio * cpuCores) - currentlyUsedCPU - resource_required) / resource_required;
+            // HERE
+            double result = ((energy_usage_ratio * cpuCores) - currentlyUsedCPU + freed_resource - resource_required) / resource_required;
             return Math.min(result, 1.0);
         }
         return -1;
@@ -314,7 +322,7 @@ public class ContainerAgent extends Agent {
                     Duration.between(a.startTime, LocalDateTime.now()).toMillis();
             var remainingDuration_b = b.task.timeRequired.toMillis() -
                     Duration.between(b.startTime, LocalDateTime.now()).toMillis();
-            return (int) (remainingDuration_a - remainingDuration_b);
+            return (int)(remainingDuration_a - remainingDuration_b);
         }
     }
 }
