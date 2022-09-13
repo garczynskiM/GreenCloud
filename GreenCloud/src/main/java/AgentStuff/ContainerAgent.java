@@ -222,8 +222,9 @@ public class ContainerAgent extends Agent {
                     {
                         if(currentlyAvailableCPU < currentlyUsedCPU || currentlyAvailableRAM < currentlyUsedRam)
                         {
-                            System.out.format("[%s] - can't complete task [%s] because weather is [%s]\n", myAgent.getName(),
-                                    ongoingTask.task.id, weatherForecast.forecast_list.get(0));
+                            System.out.format("[%s] - can't complete task [%s] because weather is [%s]\n %s %s %s %s", myAgent.getName(),
+                                    ongoingTask.task.id, weatherForecast.forecast_list.get(0), currentlyAvailableCPU, currentlyUsedCPU,
+                                    currentlyAvailableRAM, currentlyUsedRam);
                             var failureMessage = new ACLMessage(ACLMessage.DISCONFIRM);
                             //cfp.setConversationId(conversationId);
                             failureMessage.addReceiver(new AID(regionalAgentLocalName, AID.ISLOCALNAME));
@@ -287,11 +288,11 @@ public class ContainerAgent extends Agent {
             //in our heuristic the more the better (cannot be more than 1).
             //might happen than task is too big for container -> too much resources.
             // Then the result will raise only slightly
-            double result = ((energy_usage_ratio * ramInGB) - currentlyUsedRam) / resource_required;
+            double result = ((energy_usage_ratio * ramInGB) - currentlyUsedRam - resource_required) / resource_required;
             return Math.min(result, 1.0);
         }
         else if(Objects.equals(resource_type, "CPU")) {
-            double result = ((energy_usage_ratio * cpuCores) - currentlyUsedCPU) / resource_required;
+            double result = ((energy_usage_ratio * cpuCores) - currentlyUsedCPU - resource_required) / resource_required;
             return Math.min(result, 1.0);
         }
         return -1;

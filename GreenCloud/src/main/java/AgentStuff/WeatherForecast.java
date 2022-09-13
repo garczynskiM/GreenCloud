@@ -99,5 +99,6 @@ public class WeatherForecast {
             change_chance += change_change_factor;
             last_random = weather_status.get(forecast_list.get(i));
         }
+        current_weather_factor = weather_status.get(forecast_list.get(0));
     }
 }

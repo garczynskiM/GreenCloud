@@ -165,28 +165,33 @@ public class RegionalAgent extends Agent {
             public void action() {
                 var cloudAID = new AID(cloudAgentName, AID.ISLOCALNAME);
                 var mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
-                var message = myAgent.receive(mt);
+                var message = receive(mt);
                 while (message != null) {
-                    System.out.format("[%s] Got message from cloud\n", myAgent.getName());
-                    var content = message.getContent();
-                    var conversationId = UUID.randomUUID().toString();
-                    try {
-                        tasksSent.put(conversationId, Task.stringToTask(content));
-                        tasksToDistribute.add(new RegionalTaskWithStatus(Task.stringToTask(content),
-                                TaskStatus.NotSent, conversationId));
-                    } catch (IOException | ClassNotFoundException e) {
-                        e.printStackTrace();
+                    String ontology = message.getOntology();
+                    if(ontology != null) switch (ontology)
+                    {
+                        case "New task":
+                            System.out.format("[%s] Got message from cloud\n", myAgent.getName());
+                            var content = message.getContent();
+                            var conversationId = UUID.randomUUID().toString();
+                            try {
+                                tasksSent.put(conversationId, Task.stringToTask(content));
+                                tasksToDistribute.add(new RegionalTaskWithStatus(Task.stringToTask(content),
+                                        TaskStatus.NotSent, conversationId));
+                            } catch (IOException | ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                            var cfp = new ACLMessage(ACLMessage.CFP);
+                            cfp.setConversationId(conversationId);
+                            for (var containerAgent : containerAgentNames) {
+                                cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
+                            }
+                            cfp.setContent(content);
+                            myAgent.send(cfp);
+                            System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
+                            mt = MessageTemplate.MatchConversationId(conversationId);
+                            myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
                     }
-                    var cfp = new ACLMessage(ACLMessage.CFP);
-                    cfp.setConversationId(conversationId);
-                    for (var containerAgent : containerAgentNames) {
-                        cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
-                    }
-                    cfp.setContent(content);
-                    myAgent.send(cfp);
-                    System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
-                    mt = MessageTemplate.MatchConversationId(conversationId);
-                    myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
                     message = myAgent.receive(mt);
                 }
                 block();
@@ -222,34 +227,59 @@ public class RegionalAgent extends Agent {
                         if (keyToRemove != null) {
                             tasksSent.remove(keyToRemove);
                         }
-                        var conversationId = UUID.randomUUID().toString();
 
-                        for(RegionalTaskWithStatus taskStatus: tasksToDistribute)
+                        LocalDateTime rightNow = LocalDateTime.now();
+                        LocalDateTime whenEnd = rightNow.plusSeconds(task.timeRequired.toSeconds() + 2);
+                        if((whenEnd.isAfter(task.deadline) || whenEnd.isEqual(task.deadline)))
                         {
-                            if(Objects.equals(taskStatus.task.id, task.id))
-                            {
-                                taskStatus.status = TaskStatus.NotSent;
-                                taskStatus.conversationId = conversationId;
-                                break;
-                            }
+                            ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
+                            System.out.format("[%s] Starting doing task by regional agent: [task id=%s]!\n",
+                                    myAgent.getName(), task.id);
+                            tasksToDistribute.remove(task);
                         }
-
-                        tasksSent.put(conversationId, task);
-                        var cfp = new ACLMessage(ACLMessage.CFP);
-                        cfp.setConversationId(conversationId);
-                        for (var containerAgent : containerAgentNames) {
-                            //if (!Objects.equals(containerAgent, message.getSender().getLocalName()))
-                                cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
-                        }
-                        cfp.setContent(content);
-                        myAgent.send(cfp);
-                        System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
-                        mt = MessageTemplate.MatchConversationId(conversationId);
-                        myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
+                        else myAgent.addBehaviour(createWakerTaskResender(task));
                     }
                     //message = myAgent.receive(mt);
                 }
                 block();
+            }
+        };
+    }
+    private Behaviour createWakerTaskResender(Task task)
+    {
+        return new WakerBehaviour(this, 2000) {
+            @Override
+            protected void onWake() {
+                var conversationId = UUID.randomUUID().toString();
+
+                for(RegionalTaskWithStatus taskStatus: tasksToDistribute)
+                {
+                    if(Objects.equals(taskStatus.task.id, task.id))
+                    {
+                        taskStatus.status = TaskStatus.NotSent;
+                        taskStatus.conversationId = conversationId;
+                        break;
+                    }
+                }
+
+                tasksSent.put(conversationId, task);
+                var cfp = new ACLMessage(ACLMessage.CFP);
+                cfp.setConversationId(conversationId);
+                for (var containerAgent : containerAgentNames) {
+                    //if (!Objects.equals(containerAgent, message.getSender().getLocalName()))
+                    cfp.addReceiver(new AID(containerAgent, AID.ISLOCALNAME));
+                }
+                String content = null;
+                try {
+                    content = Task.taskToString(task);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                cfp.setContent(content);
+                myAgent.send(cfp);
+                System.out.format("[%s] sent CallForProposal\n", myAgent.getName());
+                var mt = MessageTemplate.MatchConversationId(conversationId);
+                myAgent.addBehaviour(createNegotiatorSimple(mt, conversationId));
             }
         };
     }
@@ -279,10 +309,22 @@ public class RegionalAgent extends Agent {
                         if (!proposals.isEmpty()) {
                             myAgent.addBehaviour(createProposalChooserOneShot(proposals, conversationId));
                         } else {
-                            // there are no containers that can do this task, regional agent does it itself
-                            var task = tasksSent.remove(conversationId);
-                            ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
-                            System.out.format("[%s] Starting doing task by regional agent: [task id=%s]!\n", myAgent.getName(), task.id);
+                            var task = tasksSent.get(conversationId);
+
+                            LocalDateTime rightNow = LocalDateTime.now();
+                            LocalDateTime whenEnd = rightNow.plusSeconds(task.timeRequired.toSeconds() + 2);
+                            if((whenEnd.isAfter(task.deadline) || whenEnd.isEqual(task.deadline)))
+                            {
+                                ongoingTasks.add(new OngoingTask(task, LocalDateTime.now()));
+                                System.out.format("[%s] Starting doing task by regional agent: [task id=%s]!\n",
+                                        myAgent.getName(), task.id);
+                                tasksToDistribute.remove(task);
+                                tasksSent.remove(conversationId);
+                            }
+                            else
+                            {
+                                myAgent.addBehaviour(createWakerTaskResender(task));
+                            }
                         }
                         finished = true;
                     }

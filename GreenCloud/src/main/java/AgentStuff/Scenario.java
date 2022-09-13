@@ -166,11 +166,42 @@ public class Scenario
                     Duration.ofSeconds(4),16, 32, startOfCreation.plusSeconds(300)),
                     0));
         }
-        for(int i = 0; i < 30; i++)
+        for(int i = 70; i < 100; i++)
         {
             tasksToDistribute.add(new TaskToDistribute(new Task("Task" + Integer.toString(i + 1),
                     Duration.ofSeconds(4),32, 64, startOfCreation.plusSeconds(300)),
                     0));
+        }
+        return new Scenario(systemInfo, tasksToDistribute, LocalDateTime.now());
+    }
+    static public Scenario SixtySequentialTasksScenario()
+    {
+        RegionalAgentData europeRegData = new RegionalAgentData(new ArrayList<>(), "EuropeManager");
+        for(int i = 0; i < 3; i++)
+        {
+            europeRegData.AgentsToCreate.add(new ContainerAgentData("Europe" + Integer.toString(i + 1),
+                    "null", "EuropeManager", Duration.ofMillis(250), 1000,
+                    64, 100,200, 32));
+        }
+        RegionalAgentData americaRegData = new RegionalAgentData(new ArrayList<>(), "AmericaManager");
+        for(int i = 0; i < 3; i++)
+        {
+            americaRegData.AgentsToCreate.add(new ContainerAgentData("America" + Integer.toString(i + 1),
+                    "null","AmericaManager", Duration.ofMillis(250), 1000,
+                    64, 100,200, 32));
+        }
+        List<RegionalAgentData> cloudInfo = new ArrayList<>();
+        cloudInfo.add(europeRegData);
+        cloudInfo.add(americaRegData);
+        CloudAgentData systemInfo = new CloudAgentData(cloudInfo);
+        List<TaskToDistribute> tasksToDistribute = new ArrayList<>();
+
+        LocalDateTime startOfCreation = LocalDateTime.now();
+        for(int i = 0; i < 60; i++)
+        {
+            tasksToDistribute.add(new TaskToDistribute(new Task("Task" + Integer.toString(i + 1),
+                    Duration.ofSeconds(4),16, 32, startOfCreation.plusSeconds(300)),
+                    i));
         }
         return new Scenario(systemInfo, tasksToDistribute, LocalDateTime.now());
     }

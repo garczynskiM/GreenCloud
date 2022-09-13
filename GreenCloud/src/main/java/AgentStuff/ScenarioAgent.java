@@ -55,7 +55,8 @@ public class ScenarioAgent extends Agent
         //scenarioToRealise = Scenario.conflictingTaskScenario();
         //scenarioToRealise = Scenario.doubleTaskScenario();
         //scenarioToRealise = Scenario.HundredTasksScenario();
-        scenarioToRealise = Scenario.TenTasksScenario();
+        //scenarioToRealise = Scenario.TenTasksScenario();
+        scenarioToRealise = Scenario.SixtySequentialTasksScenario();
         timeElapsed = new Time(0);
         /*Object[] args = getArguments();
         graph = (Graph)args[0];*/

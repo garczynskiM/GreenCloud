@@ -32,6 +32,7 @@ public class CloudAgent extends Agent {
     int numberOfTasksGreen = 0;
     int numberOfTasksNonGreen = 0;
     String scenarioAgentName;
+    Random random;
 
     private void initialNodeStyle() {
         Node node = display.getNode(getLocalName());
@@ -54,7 +55,7 @@ public class CloudAgent extends Agent {
         numberOfTasksTotal = (int)args[2];
         scenarioAgentName = (String)args[3];
         tasks = new ArrayList<>();
-
+        random = new Random(100);
         for (RegionalAgentData data: initData.AgentsToCreate) {
             ContainerController cc = getContainerController();
             Object[] containerArgs = new Object[4];
@@ -228,12 +229,12 @@ public class CloudAgent extends Agent {
                     if (task == null) return;
                     else if (task.status != TaskStatus.NotSent) continue;
                     System.out.println(task.task.timeRequired);
-                    var random = new Random();
                     var agentIndex = random.nextInt(regionalAgentNames.size());
                     var regionalAgent = regionalAgentNames.get(agentIndex);
                     var regionalAgentAID = new AID(regionalAgent, AID.ISLOCALNAME);
                     ACLMessage message = new ACLMessage(ACLMessage.REQUEST);
                     message.addReceiver(regionalAgentAID);
+                    message.setOntology("New task");
                     try {
                         message.setContent(Task.taskToString(task.task));
                     } catch (IOException e) {
@@ -259,7 +260,7 @@ public class CloudAgent extends Agent {
 
     private void checkIfTasksCompleted()
     {
-        System.out.format("Is %s equal to total tasks %s?\n", numberOfTasksCompleted, numberOfTasksTotal);
+        System.out.format("Is %s equal to %s?\n", numberOfTasksCompleted, numberOfTasksTotal);
         if(numberOfTasksTotal == numberOfTasksCompleted)
         {
             ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
