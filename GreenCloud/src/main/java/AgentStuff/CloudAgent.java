@@ -260,7 +260,7 @@ public class CloudAgent extends Agent {
 
     private void checkIfTasksCompleted()
     {
-        System.out.format("Is %s equal to %s?\n", numberOfTasksCompleted, numberOfTasksTotal);
+        //System.out.format("Is %s equal to %s?\n", numberOfTasksCompleted, numberOfTasksTotal);
         if(numberOfTasksTotal == numberOfTasksCompleted)
         {
             ACLMessage msg = new ACLMessage(ACLMessage.INFORM); // PROPAGATE?
